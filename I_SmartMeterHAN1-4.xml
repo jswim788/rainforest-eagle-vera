@@ -217,7 +217,7 @@
         local demand = tonumber(usageObj.demand) * 1000
         luup.variable_set(ENERGY_SERVICE, "Watts", demand, HAN_Device)
       else
-        luup.log("SmartMeterHAN1: issue with demand: ", usageObj.demand)
+        luup.log("SmartMeterHAN1: issue with demand: " .. usageObj.demand)
       end
       luup.variable_set(ENERGY_SERVICE, "Price", usageObj.price, HAN_Device)
 
