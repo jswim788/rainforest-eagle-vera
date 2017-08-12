@@ -2,7 +2,7 @@
 <implementation>
   <functions>
     -- Plugin for the Rainforest Eagle
-    -- version 0.41js
+    -- version 0.43js
     -- based on the version 0.4 from robertmm in the Vera forums
     -- converted to use the port 80 and get the json instead of port 5002 with xml
     --
@@ -90,6 +90,17 @@
       end
       if ((HAN_LinkStatus or "") == "") then
         luup.variable_set(HAN_SERVICE, "LinkStatus", 0, HAN_Device)
+      end
+      -- the next 3 are to create these device variables if they don't exist so that
+      -- the user can enter the values after the device is first created
+      if ((HAN_MACID or "") == "") then
+        luup.variable_set(HAN_SERVICE, "DeviceMACID", "", HAN_Device)
+      end
+      if ((HAN_IN or "") == "") then
+        luup.variable_set(HAN_SERVICE, "DeviceIN", "", HAN_Device)
+      end
+      if ((HAN_CLOUDID or "") == "") then
+        luup.variable_set(HAN_SERVICE, "CloudId", "", HAN_Device)
       end
       HAN_Pulse = tonumber(HAN_Pulse)
       if ((HAN_MACID or "") == "") then
@@ -265,6 +276,7 @@
         local currentReceived  = luup.variable_get(HAN_SERVICE, "KWHReceived",  HAN_Device) or "0"
         luup.variable_set(HAN_SERVICE, "KWHBaseDelivered", currentDelivered, HAN_Device)
         luup.variable_set(HAN_SERVICE, "KWHBaseReceived",  currentReceived,  HAN_Device)
+        luup.variable_set(ENERGY_SERVICE, "KWH", 0, HAN_Device)
         luup.log("SmartHAN1: Reset base values for delivered and received")
       </run>
     </action>
