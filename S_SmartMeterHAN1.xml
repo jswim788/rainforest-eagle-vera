@@ -1,0 +1,59 @@
+<?xml version="1.0"?>
+<scpd xmlns="urn:schemas-upnp-org:service-1-0">
+	<specVersion>
+		<major>1</major>
+		<minor>0</minor>
+	</specVersion>
+	<serviceStateTable>
+		<stateVariable sendEvents="no">
+			<name>LastUpdateFormatted</name>
+			<dataType>string</dataType>
+		</stateVariable>
+		<stateVariable sendEvents="no">
+			<name>MeteringType</name>
+			<dataType>ui4</dataType>
+		</stateVariable>
+		<stateVariable sendEvents="yes">
+			<name>KWHDelivered</name>
+			<dataType>string</dataType>
+		</stateVariable>
+		<stateVariable sendEvents="yes">
+			<name>KWHReceived</name>
+			<dataType>string</dataType>
+		</stateVariable>
+		<stateVariable sendEvents="yes">
+			<name>KWHNet</name>
+			<dataType>string</dataType>
+		</stateVariable>
+		<stateVariable sendEvents="yes">
+			<name>LinkStrength</name>
+			<dataType>ui4</dataType>
+		</stateVariable>
+		<stateVariable sendEvents="yes">
+			<name>LinkStatus</name>
+			<dataType>string</dataType>
+		</stateVariable>
+		<stateVariable sendEvents="no">
+			<name>A_ARG_TYPE_pulse</name>
+			<dataType>ui4</dataType>
+		</stateVariable>
+	</serviceStateTable>
+	<actionList>
+		<action>
+			<name>SetPulse</name>
+			<argumentList>
+				<argument>
+					<name>NewPulse</name>
+					<direction>in</direction>
+					<relatedStateVariable>A_ARG_TYPE_pulse</relatedStateVariable>
+				</argument>
+			</argumentList>
+		</action>
+		<action>
+			<name>StartPeak</name>
+		</action>
+		<action>
+			<name>EndPeak</name>
+		</action>
+	</actionList>
+</scpd>
