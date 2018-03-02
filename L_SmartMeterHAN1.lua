@@ -520,7 +520,7 @@ local function storeData(dataTable)
       setVar("KWHDeliveredPerPeriod", delivered - baseDelivered)
     end
 
-    setVar("KWHReading", tostring(timestamp), ENERGY_SERVICE)
+    setVar("KWHReading", tostring(dataTable.timestamp), ENERGY_SERVICE)
  
   end
 
@@ -535,11 +535,14 @@ local function storeData(dataTable)
       log("Issue with demand - has nil value", 2)
     end
   end
-
   setVar("Price", dataTable.price, ENERGY_SERVICE)
-  if tonumber(dataTable.price) then
+  if tonumber(dataTable.price) and tonumber(dataTable.price ~= -1.00) then
     -- display in cents, not dollars
     setVar("DisplayPrice", string.format("%.1f", dataTable.price * 100))
+  else
+    -- apparently -1.00 means no data (at least for me), or if not a number
+    -- don't dispaly anything
+    setVar("DisplayPrice", '')
   end
 
   if HAN_MODEL == "100" then
