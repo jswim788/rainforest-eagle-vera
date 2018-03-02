@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+<implementation>
+  <files>L_SmartMeterHAN1.lua</files>
+  <startup>startup</startup>
+  <actionList>
+    <action>
+      <serviceId>urn:micasaverde-com:serviceId:HaDevice1</serviceId>
+      <name>Poll</name>
+      <run>
+        luup.call_timer("retrieveData", 1, "1", "")
+      </run>
+    </action>
+    <action>
+      <serviceId>urn:micasaverde-com:serviceId:EnergyMetering1</serviceId>
+      <name>ResetKWH</name>
+      <run>resetKWH()</run>
+    </action>
+    <action>
+      <serviceId>urn:smartmeter-han:serviceId:SmartMeterHAN1</serviceId>
+      <name>StartPeak</name>
+      <run>startPeak()</run>
+    </action>
+    <action>
+      <serviceId>urn:smartmeter-han:serviceId:SmartMeterHAN1</serviceId>
+      <name>EndPeak</name>
+      <run>endPeak()</run>
+    </action>
+    <action>
+      <serviceId>urn:smartmeter-han:serviceId:SmartMeterHAN1</serviceId>
+      <name>SetPulse</name>
+      <run>setPulse(lul_settings)</run>
+    </action>
+    <action>
+      <serviceId>urn:smartmeter-han:serviceId:SmartMeterHAN1</serviceId>
+      <name>SetSeason</name>
+      <run>setSeason(lul_settings)</run>
+    </action>
+  </actionList>
+</implementation>

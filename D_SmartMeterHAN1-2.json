@@ -1,0 +1,684 @@
+{
+	"flashicon":		"icons\/Power_Meter.swf",
+	"imgIconBody":		"",
+	"imgIconDimmable":	"",
+	"imgIconTurnable":	"",
+	"imgIconMin":		"",
+	"imgIconMax":		"",
+	"x":			"3.5",
+	"y":			"4",
+	"halloIconsDir":	"pics\/hallo",
+	"inScene":		"1",
+	"DisplayStatus":{
+	},
+	"doc_url":{
+		"doc_language":		1,
+		"doc_manual":		1,
+		"doc_version":		1,
+		"doc_platform":		0,
+		"doc_page":		"devices"
+	},
+	"Tabs":[
+		{
+			"Label":{
+				"lang_tag":		"tabname_control",
+				"text":			"Control"
+			},
+			"Position":		"0",
+			"TabType":		"flash",
+			"SceneGroup":[
+				{
+					"id":			"1",
+					"top":			"-0.3",
+					"left":			"0.2",
+					"x":			"4",
+					"y":			"4"
+				},
+				{
+					"id":			"2",
+					"top":			"0.4",
+					"left":			"2.4",
+					"x":			"1.2",
+					"y":			"1.2"
+				}
+			],
+			"ControlGroup":[
+				{
+					"id":			"1",
+					"type":		"info",
+					"scenegroup":		"1"
+				},
+				{
+					"id":			"2",
+					"isSingle":		"1",
+					"scenegroup":		"2"
+				}
+			],
+			"Control":[
+				{
+					"ControlType":		"label",
+					"ControlGroup":		"1",
+					"top":			"0.5",
+					"left":			"0",
+					"text_align":		"left",
+					"Label":{
+						"lang_tag":		"power",
+						"text":			"Power:"
+					},
+					"Display":{
+						"Top":			40,
+						"Left":			50,
+						"Width":		50,
+						"Height":		20
+					}
+				},
+				{
+					"ControlType":		"variable",
+					"ControlGroup":		"1",
+					"top":			"0.5",
+					"left":			"0.7",
+					"text_align":		"right",
+					"Display":{
+						"Service":		"urn:micasaverde-com:serviceId:EnergyMetering1",
+						"Variable":		"Watts",
+						"Top":			40,
+						"Left":			150,
+						"Width":		40,
+						"Height":		20
+					}
+				},
+				{
+					"ControlType":		"label",
+					"ControlGroup":		"1",
+					"top":			"0.5",
+					"left":			"1.8",
+					"text_align":		"left",
+					"Label":{
+						"lang_tag":		"watts",
+						"text":			"W"
+					},
+					"Display":{
+						"Top":			40,
+						"Left":			212,
+						"Width":		10,
+						"Height":		20
+					}
+				}, 
+				{
+					"ControlType":		"label",
+					"ControlGroup":		"1",
+					"top":			"1",
+					"left":			"0",
+					"text_align":		"left",
+					"Label":{
+						"lang_tag":		"from_grid",
+						"text":			"From grid:"
+					},
+					"Display":{
+						"Top":			60,
+						"Left":			50,
+						"Width":		50,
+						"Height":		20
+					}
+				},
+				{
+					"ControlType":		"variable",
+					"ControlGroup":		"1",
+					"top":			"1",
+					"left":			"0.7",
+					"text_align":		"right",
+					"Display":{
+						"Service":		"urn:smartmeter-han:serviceId:SmartMeterHAN1",
+						"Variable":		"KWHDelivered",
+						"Top":			60,
+						"Left":			150,
+						"Width":		40,
+						"Height":		20
+					}
+				},
+				{
+					"ControlType":		"label",
+					"ControlGroup":		"1",
+					"top":			"1",
+					"left":			"1.8",
+					"text_align":		"left",
+					"Label":{
+						"lang_tag":		"kwh",
+						"text":			"kWh"
+					},
+					"Display":{
+						"Top":			60,
+						"Left":			212,
+						"Width":		10,
+						"Height":		20
+					}
+				},
+				{
+					"ControlType":		"label",
+					"ControlGroup":		"1",
+					"top":			"1.5",
+					"left":			"0",
+					"text_align":		"left",
+					"Label":{
+						"lang_tag":		"to_grid",
+						"text":			"To grid:"
+					},
+					"Display":{
+						"Top":			80,
+						"Left":			50,
+						"Width":		50,
+						"Height":		20
+					}
+				},
+				{
+					"ControlType":		"variable",
+					"ControlGroup":		"1",
+					"top":			"1.5",
+					"left":			"0.7",
+					"text_align":		"right",
+					"Display":{
+						"Service":		"urn:smartmeter-han:serviceId:SmartMeterHAN1",
+						"Variable":		"KWHReceived",
+						"Top":			80,
+						"Left":			150,
+						"Width":		40,
+						"Height":		20
+					}
+				},
+				{
+					"ControlType":		"label",
+					"ControlGroup":		"1",
+					"top":			"1.5",
+					"left":			"1.8",
+					"text_align":		"left",
+					"Label":{
+						"lang_tag":		"kwh",
+						"text":			"kWh"
+					},
+					"Display":{
+						"Top":			80,
+						"Left":			212,
+						"Width":		10,
+						"Height":		20
+					}
+				},
+				{
+					"ControlType":		"label",
+					"ControlGroup":		"1",
+					"top":			"2",
+					"left":			"0",
+					"text_align":		"left",
+					"Label":{
+						"lang_tag":		"net",
+						"text":			"Net:"
+					},
+					"Display":{
+						"Top":			100,
+						"Left":			50,
+						"Width":		50,
+						"Height":		20
+					}
+				},
+				{
+					"ControlType":		"variable",
+					"ControlGroup":		"1",
+					"top":			"2",
+					"left":			"0.7",
+					"text_align":		"right",
+					"Display":{
+						"Service":		"urn:smartmeter-han:serviceId:SmartMeterHAN1",
+						"Variable":		"KWHNet",
+						"Top":			100,
+						"Left":			150,
+						"Width":		40,
+						"Height":		20
+					}
+				},
+				{
+					"ControlType":		"label",
+					"ControlGroup":		"1",
+					"top":			"2",
+					"left":			"1.8",
+					"text_align":		"left",
+					"Label":{
+						"lang_tag":		"kwh",
+						"text":			"kWh"
+					},
+					"Display":{
+						"Top":			100,
+						"Left":			212,
+						"Width":		10,
+						"Height":		20
+					}
+				},
+				{
+					"ControlType":		"label",
+					"ControlGroup":		"1",
+					"top":			"2.5",
+					"left":			"0",
+					"text_align":		"left",
+					"Label":{
+						"lang_tag":		"current",
+						"text":			"Current:"
+					},
+					"Display":{
+						"Top":			120,
+						"Left":			50,
+						"Width":		50,
+						"Height":		20
+					}
+				},
+				{
+					"ControlType":		"variable",
+					"ControlGroup":		"1",
+					"top":			"2.5",
+					"left":			"0.7",
+					"text_align":		"right",
+					"Display":{
+						"Service":		"urn:micasaverde-com:serviceId:EnergyMetering1",
+						"Variable":		"KWH",
+						"Top":			120,
+						"Left":			150,
+						"Width":		40,
+						"Height":		20
+					}
+				},					
+				{
+					"ControlType":		"label",
+					"ControlGroup":		"1",
+					"top":			"2.5",
+					"left":			"1.8",
+					"text_align":		"left",
+					"Label":{
+						"lang_tag":		"kwh",
+						"text":			"kWh"
+					},
+					"Display":{
+						"Top":			120,
+						"Left":			212,
+						"Width":		10,
+						"Height":		20
+					}
+				},
+				{
+					"ControlType":		"label",
+					"ControlGroup":		"1",
+					"top":			"3",
+					"left":			"0",
+					"text_align":		"left",
+					"Label":{
+						"lang_tag":		"price",
+						"text":			"Price:"
+					},
+					"Display":{
+						"Top":			140,
+						"Left":			50,
+						"Width":		50,
+						"Height":		20
+					}
+				},
+				{
+					"ControlType":		"variable",
+					"ControlGroup":		"1",
+					"top":			"3",
+					"left":			"0.7",
+					"text_align":		"right",
+					"Display":{
+						"Service":		"urn:micasaverde-com:serviceId:SmartMeterHAN1",
+						"Variable":		"DisplayPrice",
+						"Top":			140,
+						"Left":			150,
+						"Width":		40,
+						"Height":		20
+					}
+				},					
+				{
+					"ControlType":		"label",
+					"ControlGroup":		"1",
+					"top":			"3",
+					"left":			"1.8",
+					"text_align":		"left",
+					"Label":{
+						"lang_tag":		"cents",
+						"text":			"&#162"
+					},
+					"Display":{
+						"Top":			120,
+						"Left":			212,
+						"Width":		10,
+						"Height":		20
+					}
+				},
+				{
+					"ControlType":		"label",
+					"ControlGroup":		"1",
+					"top":			"3.5",
+					"left":			"0",
+					"text_align":		"left",
+					"Label":{
+						"lang_tag":		"link_status",
+						"text":			"Status:"
+					},
+					"Display":{
+						"Top":			160,
+						"Left":			50,
+						"Width":		50,
+						"Height":		20
+					}
+				},
+				{
+					"ControlType":		"variable",
+					"ControlGroup":		"1",
+					"top":			"3.5",
+					"left":			"0.7",
+					"text_align":		"right",
+					"Display":{
+						"Service":		"urn:smartmeter-han:serviceId:SmartMeterHAN1",
+						"Variable":		"LinkStatus",
+						"Top":			160,
+						"Left":			150,
+						"Width":		40,
+						"Height":		20
+					}
+				},					
+				{
+					"ControlType":		"label",
+					"Label":{
+						"lang_tag":		"last_update",
+						"text":			"Updated:"
+					},
+					"Display":{
+						"Top":			180,
+						"Left":			50,
+						"Width":		50,
+						"Height":		20
+					}
+				},
+				{
+					"ControlType":		"variable",
+					"ControlGroup":		"1",
+					"top":			"3.5",
+					"left":			"1.8",
+					"x":			"3",
+					"text_align":		"left",
+					"Display":{
+						"Service":		"urn:smartmeter-han:serviceId:SmartMeterHAN1",
+						"Variable":		"LastUpdateFormatted",
+						"Top":			180,
+						"Left":			150,
+						"Width":		160,
+						"Height":		20
+					}
+				},					
+				{
+					"ControlType":		"label",
+					"ControlPair":		1,
+					"Label":{
+						"lang_tag":		"update_pulse",
+						"text":			"Update pulse:"
+					},
+					"Display":{
+						"Top":			200,
+						"Left":			50,
+						"Width":		50,
+						"Height":		20
+					}
+				},
+				{
+					"ControlType":		"variable",
+					"ControlPair":		"1",
+					"Display":{
+						"Service":		"urn:micasaverde-com:serviceId:EnergyMetering1",
+						"Variable":		"Pulse",
+						"Top":			200,
+						"Left":			150,
+						"Width":		40,
+						"Height":		20
+					}
+				},
+				{
+					"ControlType":		"input",
+					"ControlPair":		"1",
+					"ID":			"Pulse",
+					"Display":{
+						"Top":			200,
+						"Left":			150,
+						"Width":		30,
+						"Height":		20
+					}
+				},
+				{
+					"ControlType":		"label",
+					"ControlPair":		1,
+					"Label":{
+						"lang_tag":		"seconds",
+						"text":			"seconds"
+					},
+					"Display":{
+						"Top":			200,
+						"Left":			190,
+						"Width":		10,
+						"Height":		20
+					}
+				},
+				{
+					"ControlType":		"button",
+					"ControlPair":		1,
+					"Label":{
+						"lang_tag":		"cmd_set",
+						"text":			"Set"
+					},
+					"Display":{
+						"Top":			220,
+						"Left":			190,
+						"Width":		75,
+						"Height":		20
+					},
+					"Command":{
+						"Service":		"urn:smartmeter-han:serviceId:SmartMeterHAN1",
+						"Action":		"SetPulse",
+						"Parameters":		[
+							{
+								"Name":		"pulse",
+								"ID":		"Pulse"
+							}
+						]
+					}
+				},
+				{
+					"ControlType":		"button",
+					"Label":{
+						"lang_tag":		"cmd_poll",
+						"text":			"Poll now"
+					},
+					"Display":{
+						"Top":			272,
+						"Left":			50,
+						"Width":		75,
+						"Height":		20
+					},
+					"Command":{
+						"Service":		"urn:micasaverde-com:serviceId:HaDevice1",
+						"Action":		"Poll",
+						"Parameters":		[]
+					}
+				},
+				{
+					"ControlType":		"button",
+					"ControlGroup":		"2",
+					"top":			"0.1",
+					"left":			"0.1",
+					"Label":{
+						"lang_tag":		"cmd_resetkwh",
+						"text":			"Reset KWH"
+					},
+					"Display":{
+						"Top":			272,
+						"Left":			150,
+						"Width":		75,
+						"Height":		20
+					},
+					"Command":{
+						"Service":		"urn:micasaverde-com:serviceId:EnergyMetering1",
+						"Action":		"ResetKWH",
+						"Parameters":		[]
+					}
+				}
+			]
+		},
+		{
+			"Label":{
+				"lang_tag":		"settings",
+				"text":			"Settings"
+			},
+			"Position":		"1",
+			"TabType":		"javascript",
+			"ScriptName":		"shared.js",
+			"Function":		"simple_device"
+		},
+		{
+			"Label":{
+				"lang_tag":		"advanced",
+				"text":			"Advanced"
+			},
+			"Position":		"2",
+			"TabType":		"javascript",
+			"ScriptName":		"shared.js",
+			"Function":		"advanced_device"
+		},
+		{
+			"Label":{
+				"lang_tag":		"notifications",
+				"text":			"Notifications"
+			},
+			"Position":		"3",
+			"TabType":		"javascript",
+			"ScriptName":		"shared.js",
+			"Function":		"device_notifications"
+		}
+	],
+	"eventList2":[
+		{
+			"id":		1,
+			"label":{
+				"lang_tag":	"energy_usage_goes_above",
+				"text":		"Energy usage goes above"
+			},
+			"serviceId":	"urn:micasaverde-com:serviceId:EnergyMetering1",
+			"norepeat":	"1",
+			"argumentList":[
+				{
+					"id":		1,
+					"dataType":	"i4",
+					"name":		"Watts",
+					"comparisson":	">",
+					"prefix":{
+						"lang_tag":	"watts",
+						"text":		"Watts:"
+					},
+					"suffix":{},
+					"HumanFriendlyText":{
+						"lang_tag":	"hft_energy_usage_goes_above",
+						"text":		"_DEVICE_NAME_: Energy usage goes above _ARGUMENT_VALUE_ Watts"
+					}
+				}
+			]
+		},
+		{
+			"id":		2,
+			"label":{
+				"lang_tag":	"energy_usage_goes_below",
+				"text":		"Energy usage goes below"
+			},
+			"serviceId":	"urn:micasaverde-com:serviceId:EnergyMetering1",
+			"norepeat":	"1",
+			"argumentList":[
+				{
+					"id":		1,
+					"dataType":	"i4",
+					"name":		"Watts",
+					"comparisson":	"<",
+					"prefix":{
+						"lang_tag":	"watts",
+						"text":		"Watts:"
+					},
+					"suffix":{},
+					"HumanFriendlyText":{
+						"lang_tag":	"hft_energy_usage_goes_below",
+						"text":		"_DEVICE_NAME_: Energy usage goes below _ARGUMENT_VALUE_ Watts"
+					}
+				}
+			]
+		},
+		{
+			"id":		3,
+			"label":{
+				"lang_tag":	"link_strength_goes_below",
+				"text":		"Link strength goes below"
+			},
+			"serviceId":	"urn:smartmeter-han:serviceId:SmartMeterHAN1",
+			"norepeat":	"1",
+			"argumentList":[
+				{
+					"id":		1,
+					"dataType":	"i4",
+					"name":		"LinkStrength",
+					"comparisson":	"<",
+					"prefix":{},
+					"suffix":{},
+					"HumanFriendlyText":{
+						"lang_tag":	"hft_link_strength_goes_below",
+						"text":		"_DEVICE_NAME_: Link strength goes below _ARGUMENT_VALUE_ %"
+					}
+				}
+			]
+		},
+		{
+			"id":		4,
+			"label":{
+				"lang_tag":	"link_status_changes",
+				"text":		"Link status changes"
+			},
+			"serviceId":	"urn:smartmeter-han:serviceId:SmartMeterHAN1",
+			"norepeat":	"1",
+			"argumentList":[
+				{
+					"id":		1,
+					"dataType":	"string",
+					"defaultValue":	"",
+					"allowedValueList": [
+						{
+							"Unknown": "Unknown",
+							"HumanFriendlyText":{
+								"lang_tag":	"hft_link_status_unknown",
+								"text":		"_DEVICE_NAME_: Link status changes to Unknown"
+							}
+						},
+						{
+							"Rejoining": "Rejoining",
+							"HumanFriendlyText":{
+								"lang_tag":	"hft_link_status_rejoining",
+								"text":		"_DEVICE_NAME_: Link status changes to Rejoining"
+							}
+						},
+						{
+							"Connected": "Connected",
+							"HumanFriendlyText":{
+								"lang_tag":	"hft_link_status_connected",
+								"text":		"_DEVICE_NAME_: Link status changes to Connected"
+							}
+						}
+					],
+					"name":		"LinkStatus",
+					"comparisson":	"=",
+					"prefix":	{
+						"lang_tag":	"link_status_string",
+						"text":		"Status"
+					},
+					"suffix":	{}
+				}
+			]
+		}
+	],
+	"DeviceType":	"urn:schemas-smartmeter-han:device:SmartMeterHAN1:1"
+}

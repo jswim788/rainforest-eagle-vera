@@ -34,7 +34,67 @@
 			<dataType>string</dataType>
 		</stateVariable>
 		<stateVariable sendEvents="no">
+			<name>DeviceMACID</name>
+			<dataType>string</dataType>
+		</stateVariable>
+		<stateVariable sendEvents="no">
+			<name>DeviceIN</name>
+			<dataType>string</dataType>
+		</stateVariable>
+		<stateVariable sendEvents="no">
+			<name>DeviceCloudId</name>
+			<dataType>string</dataType>
+		</stateVariable>
+		<stateVariable sendEvents="no">
+			<name>KWHDeliveredPerPeriod</name>
+			<dataType>string</dataType>
+		</stateVariable>
+		<stateVariable sendEvents="no">
+			<name>KWHDeliveredPeriod</name>
+			<dataType>string</dataType>
+		</stateVariable>
+		<stateVariable sendEvents="no">
+			<name>KWHPeak</name>
+			<dataType>string</dataType>
+		</stateVariable>
+		<stateVariable sendEvents="no">
+			<name>KWHOffPeak</name>
+			<dataType>string</dataType>
+		</stateVariable>
+		<stateVariable sendEvents="no">
+			<name>KWHStartPeak</name>
+			<dataType>string</dataType>
+		</stateVariable>
+		<stateVariable sendEvents="no">
+			<name>KWHStartOffPeak</name>
+			<dataType>string</dataType>
+		</stateVariable>
+		<stateVariable sendEvents="no">
+			<name>PeakPeriod</name>
+			<dataType>string</dataType>
+		</stateVariable>
+		<stateVariable sendEvents="no">
+			<name>KWHNetPeak</name>
+			<dataType>string</dataType>
+		</stateVariable>
+		<stateVariable sendEvents="no">
+			<name>KWHNetOffPeak</name>
+			<dataType>string</dataType>
+		</stateVariable>
+		<stateVariable sendEvents="no">
+			<name>KWHBaseDelivered</name>
+			<dataType>string</dataType>
+		</stateVariable>
+		<stateVariable sendEvents="no">
+			<name>KWHBaseReceived</name>
+			<dataType>string</dataType>
+		</stateVariable>
+		<stateVariable sendEvents="no">
 			<name>A_ARG_TYPE_pulse</name>
+			<dataType>ui4</dataType>
+		</stateVariable>
+		<stateVariable sendEvents="no">
+			<name>A_ARG_TYPE_season</name>
 			<dataType>ui4</dataType>
 		</stateVariable>
 	</serviceStateTable>
@@ -50,10 +110,23 @@
 			</argumentList>
 		</action>
 		<action>
+			<name>SetSeason</name>
+			<argumentList>
+				<argument>
+					<name>NewSeason</name>
+					<direction>in</direction>
+					<relatedStateVariable>A_ARG_TYPE_season</relatedStateVariable>
+				</argument>
+			</argumentList>
+		</action>
+		<action>
 			<name>StartPeak</name>
 		</action>
 		<action>
 			<name>EndPeak</name>
+		</action>
+		<action>
+			<name>ResetKWH</name>
 		</action>
 	</actionList>
 </scpd>

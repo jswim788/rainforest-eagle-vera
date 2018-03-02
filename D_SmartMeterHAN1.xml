@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+<root xmlns="urn:schemas-upnp-org:device-1-0">
+  <specVersion>
+    <major>1</major>
+    <minor>0</minor>
+  </specVersion>
+  <device>
+    <deviceType>urn:schemas-smartmeter-han:device:SmartMeterHAN1:1</deviceType>
+    <staticJson>D_SmartMeterHAN1.json</staticJson>
+    <friendlyName>ZigBee Smart Meter HAN Device</friendlyName>
+    <manufacturer>Rainforest Automation</manufacturer>
+    <manufacturerURL>http://rainforestautomation.com</manufacturerURL>
+    <modelDescription>Home Energy Gateway</modelDescription>
+    <modelName>Eagle</modelName>
+    <modelNumber>RFA-Z109</modelNumber>
+    <modelURL>http://rainforestautomation.com/eagle</modelURL>
+    <serviceList>
+      <service>
+        <serviceType>urn:schemas-micasaverde-com:service:EnergyMetering:1</serviceType>
+        <serviceId>urn:micasaverde-com:serviceId:EnergyMetering1</serviceId>
+        <SCPDURL>S_EnergyMetering1.xml</SCPDURL>
+      </service>
+      <service>
+        <serviceType>urn:schemas-smartmeter-han:service:SmartMeterHAN1:1</serviceType>
+        <serviceId>urn:smartmeter-han:serviceId:SmartMeterHAN1</serviceId>
+        <SCPDURL>S_SmartMeterHAN1.xml</SCPDURL>
+      </service>
+      <service>
+        <serviceType>urn:schemas-micasaverde-com:service:HaDevice:1</serviceType>
+        <serviceId>urn:micasaverde-com:serviceId:HaDevice1</serviceId>
+        <SCPDURL>S_HaDevice1.xml</SCPDURL>
+      </service>
+    </serviceList>
+    <implementationList>
+      <implementationFile>I_SmartMeterHAN1.xml</implementationFile>
+    </implementationList>
+  </device>
+</root>
