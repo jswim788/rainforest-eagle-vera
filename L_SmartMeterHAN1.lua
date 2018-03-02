@@ -290,9 +290,10 @@ function startup(han_device)
     luup.attr_set("device_json", "D_SmartMeterHAN1-2.json", han_device)
   end
 
-  refreshCache()
-  -- luup.set_failure(0) -- why doesn't this work?
-  -- possibly UI7/UI5 flip meaning of status
+  -- start polling in 10 seconds
+  luup.call_delay("refreshCache", 10)
+
+  -- handle UI7/UI5 meaning of status
   setluupfailure(0, HAN_Device)
   return true, "OK", "SmartMeterHAN1"
 end
@@ -536,7 +537,7 @@ local function storeData(dataTable)
     end
   end
   setVar("Price", dataTable.price, ENERGY_SERVICE)
-  if tonumber(dataTable.price) and tonumber(dataTable.price ~= -1.00) then
+  if tonumber(dataTable.price) and (tonumber(dataTable.price) ~= -1.00) then
     -- display in cents, not dollars
     setVar("DisplayPrice", string.format("%.1f", dataTable.price * 100))
   else
