@@ -89,36 +89,6 @@ local xmlstringTest = [[<DeviceList>
   </Device>
 </DeviceList>]]
 
-local function log(msg, level)
-  luup.log("SmartMeterHAN1(" .. VERSION .. "): " .. msg, level)
-end
-
--- Convert unsigned hex/decimal string
-local function tonumber_u(num)
-  if not num then return 0 end
-  if (string.sub(num, 1, 2) == "0x") then
-    -- Hex
-    return tonumber(string.sub(num, 3, -1), 16)
-  else
-    -- Not hex
-    return tonumber(num, 10)
-  end
-end
-
--- Prettify kWh output
-local function formatkWh(value)
-  local precision = getVar("Precision")
-  if precision == "1" then
-    return string.format("%.1f", (math.floor(value * 10 + 0.5) / 10))
-  elseif precision == "2" then
-    return string.format("%.2f", (math.floor(value * 100 + 0.5) / 100))
-  elseif precision == "3" then
-    return string.format("%.3f", (math.floor(value * 1000 + 0.5) / 1000))
-  else
-    return string.format("%d", value)
-  end
-end
-
 local lom=require("lxp.lom")
 
 -- some xml parsing functions to be used with the Eagle 200's xml output
@@ -252,6 +222,43 @@ local function defVar(name, default, service, device)
     luup.variable_set(service, name, value, device) -- create missing variable with default value
   end
   return value
+end
+
+local function log(msg, level)
+  local debug = getVar("Debug")
+  if debug == "TRUE" then
+    -- log everything if debugging
+    luup.log("SmartMeterHAN1(" .. VERSION .. "): " .. msg, level)
+  elseif tonumber(level) ~= 50 then
+    -- log other than 50 (HAN_DEBUG)
+    luup.log("SmartMeterHAN1(" .. VERSION .. "): " .. msg, level)
+  end
+end
+
+-- Convert unsigned hex/decimal string
+local function tonumber_u(num)
+  if not num then return 0 end
+  if (string.sub(num, 1, 2) == "0x") then
+    -- Hex
+    return tonumber(string.sub(num, 3, -1), 16)
+  else
+    -- Not hex
+    return tonumber(num, 10)
+  end
+end
+
+-- Prettify kWh output
+local function formatkWh(value)
+  local precision = getVar("Precision")
+  if precision == "1" then
+    return string.format("%.1f", (math.floor(value * 10 + 0.5) / 10))
+  elseif precision == "2" then
+    return string.format("%.2f", (math.floor(value * 100 + 0.5) / 100))
+  elseif precision == "3" then
+    return string.format("%.3f", (math.floor(value * 1000 + 0.5) / 1000))
+  else
+    return string.format("%d", value)
+  end
 end
 
 -- Set a luup failure message
@@ -482,7 +489,7 @@ local function retrieveData(model)
    
       local tab = lom.parse(xmlstring)
 
-      log("xmlstring is: " .. xmlstring,2)
+      log("xmlstring is: " .. xmlstring, HAN_DEBUG)
       dataTable.meter_status = findValue("ConnectionStatus", tab)
       dataTable.timestamp = findValue("LastContact", tab)
 
