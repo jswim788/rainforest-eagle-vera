@@ -52,6 +52,8 @@
 -- the "100".
 --
 --
+
+--
 local VERSION                   = "0.55js"
 local HA_SERVICE                = "urn:micasaverde-com:serviceId:HaDevice1"
 local ENERGY_SERVICE            = "urn:micasaverde-com:serviceId:EnergyMetering1"
@@ -66,6 +68,7 @@ local HAN_CLOUDID
 local HAN_MODEL
 local HAN_HWADDR
 local HAN_MeteringType
+local HAN_DEBUG                 = 50
 
 
 local HAN_REQUEST_DETAILS_PRE = [[<Command><Name>device_query</Name><DeviceDetails><HardwareAddress>]]
@@ -104,13 +107,50 @@ end
 
 -- Prettify kWh output
 local function formatkWh(value)
-  return string.format("%.1f", (math.floor(value * 1000 + 0.5) / 1000))
+  local precision = getVar("Precision")
+  if precision == "1" then
+    return string.format("%.1f", (math.floor(value * 10 + 0.5) / 10))
+  elseif precision == "2" then
+    return string.format("%.2f", (math.floor(value * 100 + 0.5) / 100))
+  elseif precision == "3" then
+    return string.format("%.3f", (math.floor(value * 1000 + 0.5) / 1000))
+  else
+    return string.format("%d", value)
+  end
 end
 
 local lom=require("lxp.lom")
 
 -- some xml parsing functions to be used with the Eagle 200's xml output
 -- from the POST request
+--
+--  This is sample output from the all varaibles command to the 200:
+--
+--       <Variable>
+--        <Name>zigbee:InstantaneousDemand</Name>
+--        <Value>0.070000 kW</Value>
+--      </Variable>
+--      <Variable>
+--        <Name>zigbee:Multiplier</Name>
+--        <Value>1</Value>
+--      </Variable>
+--      <Variable>
+--        <Name>zigbee:Divisor</Name>
+--        <Value>1000</Value>
+--      </Variable>
+--      <Variable>
+--        <Name>zigbee:CurrentSummationDelivered</Name>
+--        <Value>14.329000 kWh</Value>
+--      </Variable>
+--      <Variable>
+--        <Name>zigbee:CurrentSummationReceived</Name>
+--        <Value>0.000000 kWh</Value>
+--      </Variable>
+--      <Variable>
+--        <Name>zigbee:Price</Name>
+--        <Value>0.000000</Value>
+--      </Variable>
+
 
 local function findValueFor(name, xmlTable)
   if type(xmlTable) == 'table' then
@@ -129,6 +169,7 @@ local function findValueFor(name, xmlTable)
 	if (v["tag"] == "Name" and v[1] == name) then
 	  foundName = true
 	  -- print "found Name, so hitting break"
+	  log("found: " .. name, HAN_DEBUG)
 	  break
 	end
 	-- print "doing recursion"
@@ -145,6 +186,7 @@ local function findValueFor(name, xmlTable)
         if type(v) == 'table' then
 	  if (v["tag"] == "Value") then
 	    -- print(v[1])
+	    log("Value is: " .. v[1], HAN_DEBUG)
 	    return v[1]
 	  end
         end
@@ -238,6 +280,7 @@ function startup(han_device)
   defVar("KWHOffPeak", 0)
   defVar("PeakPeriod", "OFF")
   defVar("Season", "Summer")
+  defVar("Precision", "0")  -- how many digits of precision for kWh format
   HAN_MeteringType = defVar("MeteringType", HAN_DEFAULT_METERINGTYPE)
   defVar("dailyMinCharge", "0.32854")
   defVar("NBCRate", "0.02328")
@@ -249,28 +292,27 @@ function startup(han_device)
   defVar("ActualUsage", 1, ENERGY_SERVICE)
 
   if HAN_MODEL ~= "200" then
-    log("Eagle Model 100", 2)
+    log("Eagle Model 100", 3)
     if ((HAN_MACID or "") == "") then
-      return false, "Please enter the DeviceMACID of your HAN device", "SmartMeterHAN1"
+      return false, "Eagle 100: Please enter the DeviceMACID of your HAN device", "SmartMeterHAN1"
     end
   else
-    -- log("Eagle Model 200", 3)
-    log("Eagle Model 200", 2)
+    log("Eagle Model 200", 3)
     -- get the hardware address of the Eagle 200 
     local xmlstring = retrieveEagleData("device_list")
     -- can use 'xmlstringTest' as defined above for testing
     if xmlstring == nil then
-      log("no hardware address, retrieveEagleData returned nil for 'device_list'", 1)
+      log("Eagle Model 200: no hardware address, retrieveEagleData returned nil for 'device_list'", 1)
       return false, "Cannot find hardware address of Eagle", "SmartMeterHAN1"
     end
     local tab = lom.parse(xmlstring)
     HAN_HWADDR = findValue("HardwareAddress", tab)
     local connectionStatus = findValue("ConnectionStatus", tab)
     if HAN_HWADDR == nil then
-      log("no hardware address", 1)
+      log("Eagle 200: no hardware address", 1)
       return false, "Cannot find hardware address", "SmartMeterHAN1"
     else
-      log("Found hardware address: " .. HAN_HWADDR, 3)
+      log("Eagle 200: Found hardware address: " .. HAN_HWADDR, 3)
     end
     if connectionStatus then
       log("Connection status: " .. connectionStatus, 3)
@@ -300,7 +342,7 @@ end
 
 
 function retrieveEagleData(requestName)
-  -- log("entering retrieveEagleData with: " .. requestName, 2)
+  log("entering retrieveEagleData with: " .. requestName, HAN_DEBUG)
   local http = require("socket.http")
   local ltn12 = require("ltn12")
 
@@ -431,7 +473,7 @@ local function retrieveData(model)
     end
 
   elseif model == "200" then
-    -- log("calling retrieve data 200", 2)
+    log("calling retrieve data 200", HAN_DEBUG)
     local xmlstring = retrieveEagleData("200_allVariables")
     if xmlstring == nil then
       log("Unable to retrieve all variables from Eagle 200", 2)
@@ -440,6 +482,7 @@ local function retrieveData(model)
    
       local tab = lom.parse(xmlstring)
 
+      log("xmlstring is: " .. xmlstring,2)
       dataTable.meter_status = findValue("ConnectionStatus", tab)
       dataTable.timestamp = findValue("LastContact", tab)
 
@@ -447,11 +490,13 @@ local function retrieveData(model)
       pattern = [[(.*) *kW.*]]
       local demandString = findValueFor("zigbee:InstantaneousDemand", tab)
       if demandString then
+        log("demandString is: " .. demandString, HAN_DEBUG)
         dataTable.demand = demandString:match(pattern)
       end
 
       local deliveredString = findValueFor("zigbee:CurrentSummationDelivered", tab)
       if deliveredString then
+        log("deliveredString is: " .. deliveredString, HAN_DEBUG)
         dataTable.summation_delivered = deliveredString:match(pattern) * 1000
       end
 
@@ -533,9 +578,9 @@ local function storeData(dataTable)
       local demand = tonumber(dataTable.demand) * 1000
       setVar("Watts", demand, ENERGY_SERVICE)
       if dataTable.demand then
-        log("Issue with demand: " .. dataTable.demand, 2)
+        log("Eagle 100: Issue with demand: " .. dataTable.demand, 2)
       else
-        log("Issue with demand - has nil value", 2)
+        log("Eagle 100: Issue with demand - has nil value", 2)
       end
     end
   end
