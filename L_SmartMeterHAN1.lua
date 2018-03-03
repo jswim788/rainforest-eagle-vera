@@ -374,7 +374,7 @@ function retrieveEagleData(requestName)
 
   if HAN_MODEL == "100" then
     local json = require("dkjson")
-    obj, pos, err = json.decode(response_body[1])
+    obj, pos, err = json.decode(table.concat(response_body))
     if err then
       log("json decode error when decoding from Ealge 100: " .. err, 2)
       setVar("CommFailure", 1, HA_SERVICE)
@@ -384,13 +384,12 @@ function retrieveEagleData(requestName)
     setVar("CommFailure", 0, HA_SERVICE)
     return obj
   elseif HAN_MODEL == "200" then
-    if response_body[1] == nil then
+    if table.concat(response_body) == nil then
       log("got nil response from Eagle 200 from POST request", 2)
       return nil
     end
     -- must have good data!
     setVar("CommFailure", 0, HA_SERVICE)
-    -- return response_body[1]
     return table.concat(response_body)
   end
 
