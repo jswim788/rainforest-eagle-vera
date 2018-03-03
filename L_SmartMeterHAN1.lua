@@ -68,8 +68,8 @@ local HAN_HWADDR
 local HAN_MeteringType
 
 
-local HAN_REQUEST_DETAILS_PRE = [[ <Command><Name>device_query</Name><DeviceDetails><HardwareAddress> ]]
-local HAN_REQUEST_DETAILS_POST = [[ </HardwareAddress></DeviceDetails><Components><All>Y</All></Components></Command> ]]
+local HAN_REQUEST_DETAILS_PRE = [[<Command><Name>device_query</Name><DeviceDetails><HardwareAddress>]]
+local HAN_REQUEST_DETAILS_POST = [[</HardwareAddress></DeviceDetails><Components><All>Y</All></Components></Command>]]
 
 -- some test data
 local testDeliver = 143313
@@ -188,7 +188,7 @@ local function setVar(name, value, service, device)
   local service = service or HAN_SERVICE
   local device = tonumber(device or HAN_Device)
   local old = luup.variable_get(service, name, device)
-  if (tostring(value) ~= old) then 
+  if value and (tostring(value) ~= old) then 
    luup.variable_set(service, name, value, device)
   end
 end
@@ -300,7 +300,7 @@ end
 
 
 function retrieveEagleData(requestName)
-  log("entering retrieveEagleData with: " .. requestName, 2)
+  -- log("entering retrieveEagleData with: " .. requestName, 2)
   local http = require("socket.http")
   local ltn12 = require("ltn12")
 
@@ -390,7 +390,8 @@ function retrieveEagleData(requestName)
     end
     -- must have good data!
     setVar("CommFailure", 0, HA_SERVICE)
-    return response_body[1]
+    -- return response_body[1]
+    return table.concat(response_body)
   end
 
   -- should never get here
@@ -431,7 +432,7 @@ local function retrieveData(model)
     end
 
   elseif model == "200" then
-    log("calling retrieve data 200", 2)
+    -- log("calling retrieve data 200", 2)
     local xmlstring = retrieveEagleData("200_allVariables")
     if xmlstring == nil then
       log("Unable to retrieve all variables from Eagle 200", 2)
@@ -439,6 +440,7 @@ local function retrieveData(model)
       dataTable = {} -- blank table for the model 200 to fill in
    
       local tab = lom.parse(xmlstring)
+
       dataTable.meter_status = findValue("ConnectionStatus", tab)
       dataTable.timestamp = findValue("LastContact", tab)
 
@@ -460,6 +462,7 @@ local function retrieveData(model)
       end
 
       dataTable.price = findValueFor("zigbee:Price", tab)
+
     end
   else
     log("unknown Eagle model in retrieveData")
@@ -511,11 +514,11 @@ local function storeData(dataTable)
     setVar("KWHNet",       net)
 
     if (HAN_MeteringType == "0") then
-      setVar("KWH", formatkWh(delivered - baseDelivered), ENERGY_SERVICE)
+      setVar("KWH", delivered - baseDelivered, ENERGY_SERVICE)
     elseif (HAN_MeteringType == "1") then
-      setVar("KWH", formatkWh(received - baseReceived), ENERGY_SERVICE)
+      setVar("KWH", received - baseReceived, ENERGY_SERVICE)
     else
-      setVar("KWH", formatkWh(net - (baseDelivered - baseReceived)), ENERGY_SERVICE)
+      setVar("KWH", net - (baseDelivered - baseReceived), ENERGY_SERVICE)
       -- for 2 way meters, good to know the net incoming due to the non bypassable charges which are
       -- based on delivered power only and not offset by generation
       setVar("KWHDeliveredPerPeriod", delivered - baseDelivered)
@@ -526,14 +529,15 @@ local function storeData(dataTable)
   end
 
   -- checks to see that it got a number back, sometimes get 'nan' on my meter
-  if HAN_MODEL == "100" and dataTable.demand ~= "nan" and tonumber(dataTable.demand) then
-    local demand = tonumber(dataTable.demand) * 1000
-    setVar("Watts", demand, ENERGY_SERVICE)
-  else
-    if dataTable.demand then
-      log("Issue with demand: " .. dataTable.demand, 2)
-    else
-      log("Issue with demand - has nil value", 2)
+  if HAN_MODEL == "100" then
+    if dataTable.demand ~= "nan" and tonumber(dataTable.demand) then
+      local demand = tonumber(dataTable.demand) * 1000
+      setVar("Watts", demand, ENERGY_SERVICE)
+      if dataTable.demand then
+        log("Issue with demand: " .. dataTable.demand, 2)
+      else
+        log("Issue with demand - has nil value", 2)
+      end
     end
   end
   setVar("Price", dataTable.price, ENERGY_SERVICE)
@@ -565,8 +569,7 @@ function refreshCache(timerInterval)
   -- Resubmit the poll job, unless the pulse==0 (disabled/manual)
   -- only resubmit if pulse is the same as with which the timer is started
   -- this takes care of cancelling older running timers
-  -- log("calling refresh cache with delay", 2)
-  if (pulse ~= 0 and (timerInterval == nil or tostring(pulse) == tostring(timerInterval))) then
+  if (pulse ~= 0 and (timerInterval == nil or timerInterval == "" or tostring(pulse) == tostring(timerInterval))) then
     -- luup.call_timer("refreshCache", 1, tostring(pulse), "", tostring(pulse))
     luup.call_delay("refreshCache", pulse, tostring(pulse))
   end
