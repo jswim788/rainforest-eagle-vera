@@ -104,7 +104,7 @@ end
 
 -- Prettify kWh output
 local function formatkWh(value)
-  return string.format("%.3f", (math.floor(value * 1000 + 0.5) / 1000))
+  return string.format("%.1f", (math.floor(value * 1000 + 0.5) / 1000))
 end
 
 local lom=require("lxp.lom")
@@ -508,16 +508,16 @@ local function storeData(dataTable)
     local baseDelivered = getVar("KWHBaseDelivered")
     local baseReceived  = getVar("KWHBaseReceived")
 
-    setVar("KWHDelivered", delivered)
-    setVar("KWHReceived",  received)
-    setVar("KWHNet",       net)
+    setVar("KWHDelivered", formatkWh(delivered))
+    setVar("KWHReceived",  formatkWh(received))
+    setVar("KWHNet",       formatkWh(net))
 
     if (HAN_MeteringType == "0") then
-      setVar("KWH", delivered - baseDelivered, ENERGY_SERVICE)
+      setVar("KWH", formatkWh(delivered - baseDelivered), ENERGY_SERVICE)
     elseif (HAN_MeteringType == "1") then
-      setVar("KWH", received - baseReceived, ENERGY_SERVICE)
+      setVar("KWH", formatkWh(received - baseReceived), ENERGY_SERVICE)
     else
-      setVar("KWH", net - (baseDelivered - baseReceived), ENERGY_SERVICE)
+      setVar("KWH", formatkWh(net - (baseDelivered - baseReceived)), ENERGY_SERVICE)
       -- for 2 way meters, good to know the net incoming due to the non bypassable charges which are
       -- based on delivered power only and not offset by generation
       setVar("KWHDeliveredPerPeriod", delivered - baseDelivered)
