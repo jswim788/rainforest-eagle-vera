@@ -91,6 +91,54 @@ local xmlstringTest = [[<DeviceList>
 
 local lom=require("lxp.lom")
 
+-- Get variable value.
+-- Use HAN_SERVICE and HAN_Device as defaults
+local function getVar(name, service, device)
+ local value = luup.variable_get(service or HAN_SERVICE, name, tonumber(device or HAN_Device))
+ return (value or '')
+end
+
+-- Update variable when value is different than current.
+-- Use HAN_SERVICE and HAN_Device as defaults
+local function setVar(name, value, service, device)
+  local service = service or HAN_SERVICE
+  local device = tonumber(device or HAN_Device)
+  local old = luup.variable_get(service, name, device)
+  if value and (tostring(value) ~= old) then 
+   luup.variable_set(service, name, value, device)
+  end
+end
+
+-- same as above, but force value regardless of current value
+local function forceSetVar(name, value, service, device)
+  local service = service or HAN_SERVICE
+  local device = tonumber(device or HAN_Device)
+  luup.variable_set(service, name, value, device)
+end
+
+--get device Variables, creating with default value if non-existent
+local function defVar(name, default, service, device)
+  local service = service or HAN_SERVICE
+  local device = tonumber(device or HAN_Device)
+  local value = luup.variable_get(service, name, device) 
+  if (not value) then
+    value = default or ''                           -- use default value or blank
+    luup.variable_set(service, name, value, device) -- create missing variable with default value
+  end
+  return value
+end
+
+local function log(msg, level)
+  local debug = getVar("Debug")
+  if debug == "TRUE" then
+    -- log everything if debugging
+    luup.log("SmartMeterHAN1(" .. VERSION .. "): " .. msg, level)
+  elseif tonumber(level) ~= 50 then
+    -- log other than 50 (HAN_DEBUG)
+    luup.log("SmartMeterHAN1(" .. VERSION .. "): " .. msg, level)
+  end
+end
+
 -- some xml parsing functions to be used with the Eagle 200's xml output
 -- from the POST request
 --
@@ -184,54 +232,6 @@ local function findValue(name, xmlTable)
     end
   else
     return nil
-  end
-end
-
--- Get variable value.
--- Use HAN_SERVICE and HAN_Device as defaults
-local function getVar(name, service, device)
- local value = luup.variable_get(service or HAN_SERVICE, name, tonumber(device or HAN_Device))
- return (value or '')
-end
-
--- Update variable when value is different than current.
--- Use HAN_SERVICE and HAN_Device as defaults
-local function setVar(name, value, service, device)
-  local service = service or HAN_SERVICE
-  local device = tonumber(device or HAN_Device)
-  local old = luup.variable_get(service, name, device)
-  if value and (tostring(value) ~= old) then 
-   luup.variable_set(service, name, value, device)
-  end
-end
-
--- same as above, but force value regardless of current value
-local function forceSetVar(name, value, service, device)
-  local service = service or HAN_SERVICE
-  local device = tonumber(device or HAN_Device)
-  luup.variable_set(service, name, value, device)
-end
-
---get device Variables, creating with default value if non-existent
-local function defVar(name, default, service, device)
-  local service = service or HAN_SERVICE
-  local device = tonumber(device or HAN_Device)
-  local value = luup.variable_get(service, name, device) 
-  if (not value) then
-    value = default or ''                           -- use default value or blank
-    luup.variable_set(service, name, value, device) -- create missing variable with default value
-  end
-  return value
-end
-
-local function log(msg, level)
-  local debug = getVar("Debug")
-  if debug == "TRUE" then
-    -- log everything if debugging
-    luup.log("SmartMeterHAN1(" .. VERSION .. "): " .. msg, level)
-  elseif tonumber(level) ~= 50 then
-    -- log other than 50 (HAN_DEBUG)
-    luup.log("SmartMeterHAN1(" .. VERSION .. "): " .. msg, level)
   end
 end
 
@@ -489,7 +489,8 @@ local function retrieveData(model)
    
       local tab = lom.parse(xmlstring)
 
-      log("xmlstring is: " .. xmlstring, HAN_DEBUG)
+      -- this is too big for general debug logging
+      -- log("xmlstring is: " .. xmlstring, HAN_DEBUG)
       dataTable.meter_status = findValue("ConnectionStatus", tab)
       dataTable.timestamp = findValue("LastContact", tab)
 
@@ -590,7 +591,11 @@ local function storeData(dataTable)
         log("Eagle 100: Issue with demand - has nil value", 2)
       end
     end
+  else -- other models, no funky issues with demand
+    local demand = tonumber(dataTable.demand) * 1000
+    setVar("Watts", demand, ENERGY_SERVICE)
   end
+
   setVar("Price", dataTable.price, ENERGY_SERVICE)
   if tonumber(dataTable.price) and (tonumber(dataTable.price) ~= -1.00) then
     -- display in cents, not dollars
@@ -622,6 +627,7 @@ function refreshCache(timerInterval)
   -- this takes care of cancelling older running timers
   if (pulse ~= 0 and (timerInterval == nil or timerInterval == "" or tostring(pulse) == tostring(timerInterval))) then
     -- luup.call_timer("refreshCache", 1, tostring(pulse), "", tostring(pulse))
+    log("call_delay for next refresh", HAN_DEBUG)
     luup.call_delay("refreshCache", pulse, tostring(pulse))
   end
   -- End Resubmit refresh job
