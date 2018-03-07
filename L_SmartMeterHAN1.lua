@@ -613,6 +613,7 @@ local function storeData(dataTable)
     if dataTable.demand ~= "nan" and tonumber(dataTable.demand) then
       local demand = tonumber(dataTable.demand) * 1000
       setVar("Watts", demand, ENERGY_SERVICE)
+    else
       if dataTable.demand then
         log("Eagle 100: Issue with demand: " .. dataTable.demand, 2)
       else
