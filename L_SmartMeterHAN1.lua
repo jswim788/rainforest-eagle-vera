@@ -54,7 +54,7 @@
 --
 
 --
-local VERSION                   = "0.55js"
+local VERSION                   = "0.56js"
 local HA_SERVICE                = "urn:micasaverde-com:serviceId:HaDevice1"
 local ENERGY_SERVICE            = "urn:micasaverde-com:serviceId:EnergyMetering1"
 local HAN_SERVICE               = "urn:smartmeter-han:serviceId:SmartMeterHAN1"
@@ -89,7 +89,17 @@ local xmlstringTest = [[<DeviceList>
   </Device>
 </DeviceList>]]
 
-local lom=require("lxp.lom")
+-- test for these in the startup since can't continue without them
+-- local lom=require("lxp.lom")
+-- local json = require("dkjson")
+local lom
+local json
+
+local function prequire(m) 
+  local ok, err = pcall(require, m) 
+  if not ok then return nil, err end
+  return err
+end
 
 -- Get variable value.
 -- Use HAN_SERVICE and HAN_Device as defaults
@@ -329,6 +339,19 @@ function startup(han_device)
     return false, "Please enter the IP address of of your HAN device", "SmartMeterHAN1"
   end
 
+  json = prequire("dkjson")
+  -- openLuup is supposed to have dkjson.  Some UI5 versions may not have it,
+  -- so those users need to load it manually
+  if not json then 
+    return false, "dkjson not found, please load it manually", "SmartMeterHAN1"
+  end
+
+  lom = prequire("lxp.lom")
+  -- lxp is on Vera by default, but not on openLuup
+  if not lom then 
+    return false, "lxp.lom not found, please load lxp manually", "SmartMeterHAN1"
+  end
+
   if HAN_MeteringType == "2" then
     -- different json file for meters that are set up to show both inbound and outbound
     -- power/energy.  default for inbound only is less cluttered and won't show
@@ -336,6 +359,11 @@ function startup(han_device)
     -- Note that another luup reload is needed after this, but instead of trying to
     -- detect when this is changed and do it automatically, just instruct the user to
     -- reload - this is a one-time change, not something that happens frequently
+    --
+    -- One more ugly note on this: it doesn't appear that UI5 pays attention to this.
+    -- As far as I can tell, either the original D.json file needs to be updated, or
+    -- the D.xml file needs to be updated to point to this name.  So request the user
+    -- to make this manual change as below is ignored.
     luup.attr_set("device_json", "D_SmartMeterHAN1-2.json", han_device)
   end
 
@@ -422,7 +450,7 @@ function retrieveEagleData(requestName)
   end
 
   if HAN_MODEL == "100" then
-    local json = require("dkjson")
+    -- local json = require("dkjson")
     obj, pos, err = json.decode(table.concat(response_body))
     if err then
       log("json decode error when decoding from Ealge 100: " .. err, 2)
