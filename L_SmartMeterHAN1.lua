@@ -95,6 +95,14 @@ local xmlstringTest = [[<DeviceList>
 local lom
 local json
 
+-- a protected require that can be used in a pure lua environment.
+-- this is not useful with Vera since Vera overloads the require
+-- with its own version which is there to handle compressed and
+-- encrypted files.  this is here for openLuup which doesn't have
+-- that overload.  Note that I haven't see openLuup fail without
+-- this, but I think the require can assert an error which could
+-- stop the process and we don't want that; we want to be able to
+-- tell the user what happened via a sensible error message
 local function prequire(m) 
   local ok, err = pcall(require, m) 
   if not ok then return nil, err end
@@ -308,11 +316,25 @@ function startup(han_device)
   defVar("WholeHouse", 1, ENERGY_SERVICE)
   defVar("ActualUsage", 1, ENERGY_SERVICE)
 
+  local openLuup = luup.attr_get "openLuup"
   if HAN_MODEL ~= "200" then
     log("Eagle Model 100", 3)
     if ((HAN_MACID or "") == "") then
       return false, "Eagle 100: Please enter the DeviceMACID of your HAN device", "SmartMeterHAN1"
     end
+ 
+    -- openLuup is supposed to have dkjson.  Some UI5 versions may not have it,
+    -- so those users need to load it manually
+    -- put some protection around the openLuup 'require' call so it doesn't (possilby) crash
+    if openLuup then
+      json = prequire("dkjson")
+    else
+      json = require("dkjson")
+    end
+    if type(json) ~= "table" then 
+      return false, "dkjson not found, please load it manually", "SmartMeterHAN1"
+    end
+
   else
     log("Eagle Model 200", 3)
     -- get the hardware address of the Eagle 200 
@@ -322,6 +344,19 @@ function startup(han_device)
       log("Eagle Model 200: no hardware address, retrieveEagleData returned nil for 'device_list'", 1)
       return false, "Cannot find hardware address of Eagle", "SmartMeterHAN1"
     end
+
+    -- lxp is on Vera by default, but not on openLuup
+    -- put some protection around the openLuup 'require' call so it doesn't (possilby) crash
+    if openLuup then
+      lom = prequire("lxp.lom")
+    else
+      -- Vera has overloaded require with luup_require, just call it here
+      lom = require("lxp.lom")
+    end 
+    if type(lom) ~= "table" then 
+      return false, "lxp.lom not found, please load lxp manually", "SmartMeterHAN1"
+    end
+
     local tab = lom.parse(xmlstring)
     HAN_HWADDR = findValue("HardwareAddress", tab)
     local connectionStatus = findValue("ConnectionStatus", tab)
@@ -337,19 +372,6 @@ function startup(han_device)
   end
   if (HAN_IP:match("%d+%.%d+%.%d+%.%d+") == nil) then
     return false, "Please enter the IP address of of your HAN device", "SmartMeterHAN1"
-  end
-
-  json = prequire("dkjson")
-  -- openLuup is supposed to have dkjson.  Some UI5 versions may not have it,
-  -- so those users need to load it manually
-  if not json then 
-    return false, "dkjson not found, please load it manually", "SmartMeterHAN1"
-  end
-
-  lom = prequire("lxp.lom")
-  -- lxp is on Vera by default, but not on openLuup
-  if not lom then 
-    return false, "lxp.lom not found, please load lxp manually", "SmartMeterHAN1"
   end
 
   if HAN_MeteringType == "2" then
