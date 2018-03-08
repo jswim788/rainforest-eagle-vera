@@ -54,7 +54,7 @@
 --
 
 --
-local VERSION                   = "0.55js"
+local VERSION                   = "0.67js"
 local HA_SERVICE                = "urn:micasaverde-com:serviceId:HaDevice1"
 local ENERGY_SERVICE            = "urn:micasaverde-com:serviceId:EnergyMetering1"
 local HAN_SERVICE               = "urn:smartmeter-han:serviceId:SmartMeterHAN1"
@@ -89,7 +89,25 @@ local xmlstringTest = [[<DeviceList>
   </Device>
 </DeviceList>]]
 
-local lom=require("lxp.lom")
+-- test for these in the startup since can't continue without them
+-- local lom=require("lxp.lom")
+-- local json = require("dkjson")
+local lom
+local json
+
+-- a protected require that can be used in a pure lua environment.
+-- this is not useful with Vera since Vera overloads the require
+-- with its own version which is there to handle compressed and
+-- encrypted files.  this is here for openLuup which doesn't have
+-- that overload.  Note that I haven't see openLuup fail without
+-- this, but I think the require can assert an error which could
+-- stop the process and we don't want that; we want to be able to
+-- tell the user what happened via a sensible error message
+local function prequire(m) 
+  local ok, err = pcall(require, m) 
+  if not ok then return nil, err end
+  return err
+end
 
 -- Get variable value.
 -- Use HAN_SERVICE and HAN_Device as defaults
@@ -298,11 +316,25 @@ function startup(han_device)
   defVar("WholeHouse", 1, ENERGY_SERVICE)
   defVar("ActualUsage", 1, ENERGY_SERVICE)
 
+  local openLuup = luup.attr_get "openLuup"
   if HAN_MODEL ~= "200" then
     log("Eagle Model 100", 3)
     if ((HAN_MACID or "") == "") then
       return false, "Eagle 100: Please enter the DeviceMACID of your HAN device", "SmartMeterHAN1"
     end
+ 
+    -- openLuup is supposed to have dkjson.  Some UI5 versions may not have it,
+    -- so those users need to load it manually
+    -- put some protection around the openLuup 'require' call so it doesn't (possilby) crash
+    if openLuup then
+      json = prequire("dkjson")
+    else
+      json = require("dkjson")
+    end
+    if type(json) ~= "table" then 
+      return false, "dkjson not found, please load it manually", "SmartMeterHAN1"
+    end
+
   else
     log("Eagle Model 200", 3)
     -- get the hardware address of the Eagle 200 
@@ -312,6 +344,19 @@ function startup(han_device)
       log("Eagle Model 200: no hardware address, retrieveEagleData returned nil for 'device_list'", 1)
       return false, "Cannot find hardware address of Eagle", "SmartMeterHAN1"
     end
+
+    -- lxp is on Vera by default, but not on openLuup
+    -- put some protection around the openLuup 'require' call so it doesn't (possilby) crash
+    if openLuup then
+      lom = prequire("lxp.lom")
+    else
+      -- Vera has overloaded require with luup_require, just call it here
+      lom = require("lxp.lom")
+    end 
+    if type(lom) ~= "table" then 
+      return false, "lxp.lom not found, please load lxp manually", "SmartMeterHAN1"
+    end
+
     local tab = lom.parse(xmlstring)
     HAN_HWADDR = findValue("HardwareAddress", tab)
     local connectionStatus = findValue("ConnectionStatus", tab)
@@ -336,6 +381,11 @@ function startup(han_device)
     -- Note that another luup reload is needed after this, but instead of trying to
     -- detect when this is changed and do it automatically, just instruct the user to
     -- reload - this is a one-time change, not something that happens frequently
+    --
+    -- One more ugly note on this: it doesn't appear that UI5 pays attention to this.
+    -- As far as I can tell, either the original D.json file needs to be updated, or
+    -- the D.xml file needs to be updated to point to this name.  So request the user
+    -- to make this manual change as below is ignored.
     luup.attr_set("device_json", "D_SmartMeterHAN1-2.json", han_device)
   end
 
@@ -422,7 +472,7 @@ function retrieveEagleData(requestName)
   end
 
   if HAN_MODEL == "100" then
-    local json = require("dkjson")
+    -- local json = require("dkjson")
     obj, pos, err = json.decode(table.concat(response_body))
     if err then
       log("json decode error when decoding from Ealge 100: " .. err, 2)
@@ -585,6 +635,7 @@ local function storeData(dataTable)
     if dataTable.demand ~= "nan" and tonumber(dataTable.demand) then
       local demand = tonumber(dataTable.demand) * 1000
       setVar("Watts", demand, ENERGY_SERVICE)
+    else
       if dataTable.demand then
         log("Eagle 100: Issue with demand: " .. dataTable.demand, 2)
       else
