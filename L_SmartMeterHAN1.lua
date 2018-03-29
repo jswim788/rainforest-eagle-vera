@@ -51,10 +51,14 @@
 -- Set the EagleModel device variable to "200" if that is what you have.  Default is
 -- the "100".
 --
+-- 0.68 - adds 0x to the MACID so the user doesn't need to enter this - can just copy
+--        from the bottom of the unit
+-- 0.69 - spit out the return string from the unit if it has something, but not the
+--        device list for debug
 --
 
 --
-local VERSION                   = "0.67js"
+local VERSION                   = "0.69js"
 local HA_SERVICE                = "urn:micasaverde-com:serviceId:HaDevice1"
 local ENERGY_SERVICE            = "urn:micasaverde-com:serviceId:EnergyMetering1"
 local HAN_SERVICE               = "urn:smartmeter-han:serviceId:SmartMeterHAN1"
@@ -361,7 +365,10 @@ function startup(han_device)
     HAN_HWADDR = findValue("HardwareAddress", tab)
     local connectionStatus = findValue("ConnectionStatus", tab)
     if HAN_HWADDR == nil then
-      log("Eagle 200: no hardware address", 1)
+      -- this is weird, there is a string, but didn't find the hardware address?
+      -- on my unit, needed a power cycle of the Eagle to get out of this bad state...
+      log("Eagle 200: no hardware address found in returned XML", 1)
+      log("Eagle 200: xmlstring is: " .. xmlstring, 1)
       return false, "Cannot find hardware address", "SmartMeterHAN1"
     else
       log("Eagle 200: Found hardware address: " .. HAN_HWADDR, 3)
@@ -420,7 +427,7 @@ function retrieveEagleData(requestName)
     path = "http://" .. HAN_IP .. path_suffix
   end
 
-  local HAN_REQUEST = "<LocalCommand>\n<Name>" .. requestName .. "</Name>\n<MacId>" .. HAN_MACID .. "</MacId>\n</LocalCommand>\n"
+  local HAN_REQUEST = "<LocalCommand>\n<Name>" .. requestName .. "</Name>\n<MacId>0x" .. HAN_MACID .. "</MacId>\n</LocalCommand>\n"
   if HAN_MODEL == "200" then
     -- device_list gives the hardware address and the connection status
     if requestName == "device_list" then
