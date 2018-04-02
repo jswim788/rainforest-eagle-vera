@@ -284,8 +284,7 @@ local function formatkWh(value)
 end
 
 local function setCommFailure(status)
-  local currentStatus = getVar("CommFailure", HA_SERVICE)
-  if currentStatus == "0" and status == 1 then
+  if getVar("CommFailure", HA_SERVICE) == "0" and status == 1 then
     -- the first time this is set, set the failure time
     -- otherwise, if this is a repetitive failure, user has
     -- no way to know when it failed
