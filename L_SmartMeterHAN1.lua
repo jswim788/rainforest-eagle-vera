@@ -55,6 +55,8 @@
 --        from the bottom of the unit
 -- 0.69 - spit out the return string from the unit if it has something, but not the
 --        device list for debug
+-- 0.70   fix for resetKWH, use setCommFailure function to log time when failure
+--        first started, also only clear CommFailure when good data is received
 --
 
 --
