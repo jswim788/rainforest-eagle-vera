@@ -55,10 +55,12 @@
 --        from the bottom of the unit
 -- 0.69 - spit out the return string from the unit if it has something, but not the
 --        device list for debug
+-- 0.70   fix for resetKWH, use setCommFailure function to log time when failure
+--        first started, also only clear CommFailure when good data is received
 --
 
 --
-local VERSION                   = "0.69js"
+local VERSION                   = "0.70js"
 local HA_SERVICE                = "urn:micasaverde-com:serviceId:HaDevice1"
 local ENERGY_SERVICE            = "urn:micasaverde-com:serviceId:EnergyMetering1"
 local HAN_SERVICE               = "urn:smartmeter-han:serviceId:SmartMeterHAN1"
@@ -283,6 +285,16 @@ local function formatkWh(value)
   end
 end
 
+local function setCommFailure(status)
+  if getVar("CommFailure", HA_SERVICE) == "0" and status == 1 then
+    -- the first time this is set, set the failure time
+    -- otherwise, if this is a repetitive failure, user has
+    -- no way to know when it failed
+    setVar("CommFailureTime", os.time(), HA_SERVICE)
+  end
+  setVar("CommFailure", status, HA_SERVICE)
+end
+
 -- Set a luup failure message
 local function setluupfailure(status,devID)
   if (luup.version_major < 7) then status = status ~= 0 end -- fix UI5 status type
@@ -468,13 +480,13 @@ function retrieveEagleData(requestName)
 
   if res == nil then
     log("Error connecting to Rainforest Eagle server port, http request returned nil", 2)
-    setVar("CommFailure", 1, HA_SERVICE)
+    setCommFailure(1)
     return nil
   end
 
   if code ~= 200 then
     log("Error connecting to Rainforest Eagle server port: " .. code, 2)
-    setVar("CommFailure", 1, HA_SERVICE)
+    setCommFailure(1)
     return nil
   end
 
@@ -483,19 +495,20 @@ function retrieveEagleData(requestName)
     obj, pos, err = json.decode(table.concat(response_body))
     if err then
       log("json decode error when decoding from Ealge 100: " .. err, 2)
-      setVar("CommFailure", 1, HA_SERVICE)
+      setCommFailure(1)
       return nil
     end
-    -- must have good data!
-    setVar("CommFailure", 0, HA_SERVICE)
+    -- must have good data!  -- but don't set CommFailure to good yet - could have
+    -- other issues in the response, so let the store function decide
     return obj
   elseif HAN_MODEL == "200" then
     if table.concat(response_body) == nil then
       log("got nil response from Eagle 200 from POST request", 2)
+      setCommFailure(1)
       return nil
     end
-    -- must have good data!
-    setVar("CommFailure", 0, HA_SERVICE)
+    -- must have good data!  -- but don't set CommFailure to good yet - could have
+    -- other issues in the response, so let the store function decide
     return table.concat(response_body)
   end
 
@@ -524,6 +537,7 @@ local function retrieveData(model)
 
     if type(dataTable) ~= "table" then
       log("Unable to retrieve data from Eagle 100", 2)
+      setCommFailure(1)
     else
       local timestamp
       timestamp = fixTimeStamp(tonumber_u(dataTable.demand_timestamp))
@@ -541,6 +555,7 @@ local function retrieveData(model)
     local xmlstring = retrieveEagleData("200_allVariables")
     if xmlstring == nil then
       log("Unable to retrieve all variables from Eagle 200", 2)
+      setCommFailure(1)
     else -- got something from xml
       dataTable = {} -- blank table for the model 200 to fill in
    
@@ -588,15 +603,17 @@ local function storeData(dataTable)
       else
         log("Connection problem, nil status ", 2)
       end
-      setVar("CommFailure", 1, HA_SERVICE)
+      setCommFailure(1)
       return nil
     end
   else
+    setCommFailure(1)
     return nil
   end
   setVar("LinkStatus", dataTable.meter_status)
 
-  setVar("CommFailure", 0, HA_SERVICE)
+  -- now can say there must be some good data, so remove any comm failure status
+  setCommFailure(0)
   if dataTable.timestamp then
     setVar("LastUpdate", dataTable.timestamp, HA_SERVICE)
     setVar("LastUpdateFormatted", os.date("%a %I:%M:%S %p", dataTable.timestamp))
@@ -724,12 +741,12 @@ end
 
 function resetKWH()
   -- reset the Base values to the current values
-  local currentDelivered = getVar("KWHDelivered", HAN_Device)
-  local baseDelivered    = getVar("KWHBaseDelivered", HAN_Device)
-  local currentReceived  = getVar("KWHReceived",  HAN_Device)
-  local netPeak          = getVar("KWHPeak",  HAN_Device)
-  local netOffPeak       = getVar("KWHOffPeak",  HAN_Device)
-  local periodType       = getVar("PeakPeriod",  HAN_Device)
+  local currentDelivered = getVar("KWHDelivered")
+  local baseDelivered    = getVar("KWHBaseDelivered")
+  local currentReceived  = getVar("KWHReceived")
+  local netPeak          = getVar("KWHPeak")
+  local netOffPeak       = getVar("KWHOffPeak")
+  local periodType       = getVar("PeakPeriod")
   local currentKWH       = getVar("KWH", ENERGY_SERVICE)
 
   -- use the base delivered value from the prior period to determine how much was used during
