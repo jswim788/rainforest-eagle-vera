@@ -600,6 +600,7 @@ local function storeData(dataTable)
     if dataTable.meter_status ~= "Connected" then
       if dataTable.meter_status then
         log("Connection problem: " .. dataTable.meter_status, 2)
+        setVar("LinkStatus", dataTable.meter_status)
       else
         log("Connection problem, nil status ", 2)
       end
@@ -608,6 +609,9 @@ local function storeData(dataTable)
     end
   else
     setCommFailure(1)
+    -- notify user of uknown link status if we can no longer communicate with
+    -- the Eagle
+    setVar("LinkStatus", "Unknown")
     return nil
   end
   setVar("LinkStatus", dataTable.meter_status)
