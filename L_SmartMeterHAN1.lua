@@ -558,31 +558,69 @@ local function retrieveData(model)
       setCommFailure(1)
     else -- got something from xml
       dataTable = {} -- blank table for the model 200 to fill in
-   
-      local tab = lom.parse(xmlstring)
+
+      -- some versions of the Eagle firmware put an '&' as seen below.  This is illegal
+      -- and will cause the xml parser to choke, so filter it out
+      -- <Description>Multiplier applied to demand & summation values</Description>
+      local tab = lom.parse(xmlstring:gsub(" & ", " "))
+      -- if there is something funky in the xml the parse may fail and it will return nil
+      if tab == nil then
+        log("xml parse of returned failed", 2)
+	return nil
+      end
 
       -- this is too big for general debug logging
       -- log("xmlstring is: " .. xmlstring, HAN_DEBUG)
       dataTable.meter_status = findValue("ConnectionStatus", tab)
       dataTable.timestamp = findValue("LastContact", tab)
 
+      -- some firmware versions have the value separate and some have it included
+      -- in the 'Value', so handle both
+      -- <Value>14.618000</Value>
+      -- <Value>14.618000 kWh</Value>
       local pattern, demand
       pattern = [[(.*) *kW.*]]
       local demandString = findValueFor("zigbee:InstantaneousDemand", tab)
       if demandString then
         log("demandString is: " .. demandString, HAN_DEBUG)
-        dataTable.demand = demandString:match(pattern)
+	if tonumber(demandString) then
+          dataTable.demand = demandString
+	else
+          dataTable.demand = demandString:match(pattern)
+	  if dataTable.demand == nil then
+	    log("Demand didn't match pattern and isn't a number: " .. demandString, 2)
+	    return nil
+	  end
+	end
       end
 
       local deliveredString = findValueFor("zigbee:CurrentSummationDelivered", tab)
       if deliveredString then
         log("deliveredString is: " .. deliveredString, HAN_DEBUG)
-        dataTable.summation_delivered = deliveredString:match(pattern) * 1000
+	if tonumber(deliveredString) then
+          dataTable.summation_delivered = deliveredString
+	else
+          local temp = deliveredString:match(pattern)
+	  if temp == nil then
+	    log("Delivered didn't match pattern and isn't a number: " .. deliveredString, 2)
+	    return nil
+	  end
+          dataTable.summation_delivered = temp * 1000
+	end
       end
 
       local receivedString = findValueFor("zigbee:CurrentSummationReceived", tab)
       if receivedString then
-        dataTable.summation_received = receivedString:match(pattern) * 1000
+	if tonumber(receivedString) then
+          dataTable.summation_received = receivedString
+	else
+          local temp = receivedString:match(pattern)
+	  if temp == nil then
+	    log("Received didn't match pattern and isn't a number: " .. receivedString, 2)
+	    return nil
+	  end
+          dataTable.summation_received = temp * 1000
+	end
       end
 
       dataTable.price = findValueFor("zigbee:Price", tab)
