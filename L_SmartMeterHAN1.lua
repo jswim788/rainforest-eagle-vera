@@ -281,7 +281,8 @@ local function formatkWh(value)
   elseif precision == "3" then
     return string.format("%.3f", (math.floor(value * 1000 + 0.5) / 1000))
   else
-    return string.format("%d", value)
+    -- convert number to integer with math.floor
+    return string.format("%d", math.floor(value))
   end
 end
 
@@ -584,7 +585,7 @@ local function retrieveData(model)
       if demandString then
         log("demandString is: " .. demandString, HAN_DEBUG)
 	if tonumber(demandString) then
-          dataTable.demand = demandString
+          dataTable.demand = demandString * 1
 	else
           dataTable.demand = demandString:match(pattern)
 	  if dataTable.demand == nil then
@@ -598,7 +599,7 @@ local function retrieveData(model)
       if deliveredString then
         log("deliveredString is: " .. deliveredString, HAN_DEBUG)
 	if tonumber(deliveredString) then
-          dataTable.summation_delivered = deliveredString
+          dataTable.summation_delivered = deliveredString * 1
 	else
           local temp = deliveredString:match(pattern)
 	  if temp == nil then
@@ -612,7 +613,7 @@ local function retrieveData(model)
       local receivedString = findValueFor("zigbee:CurrentSummationReceived", tab)
       if receivedString then
 	if tonumber(receivedString) then
-          dataTable.summation_received = receivedString
+          dataTable.summation_received = receivedString * 1
 	else
           local temp = receivedString:match(pattern)
 	  if temp == nil then
