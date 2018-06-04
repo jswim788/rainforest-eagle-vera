@@ -60,7 +60,7 @@
 --
 
 --
-local VERSION                   = "0.70js"
+local VERSION                   = "0.71js"
 local HA_SERVICE                = "urn:micasaverde-com:serviceId:HaDevice1"
 local ENERGY_SERVICE            = "urn:micasaverde-com:serviceId:EnergyMetering1"
 local HAN_SERVICE               = "urn:smartmeter-han:serviceId:SmartMeterHAN1"
@@ -281,7 +281,8 @@ local function formatkWh(value)
   elseif precision == "3" then
     return string.format("%.3f", (math.floor(value * 1000 + 0.5) / 1000))
   else
-    return string.format("%d", value)
+    -- convert number to integer with math.floor
+    return string.format("%d", math.floor(value))
   end
 end
 
@@ -331,6 +332,7 @@ function startup(han_device)
   HAN_CLOUDID = defVar("CloudId", "")
   defVar("WholeHouse", 1, ENERGY_SERVICE)
   defVar("ActualUsage", 1, ENERGY_SERVICE)
+  defVar("Debug") -- have a placeholder for users to fill in if needed
 
   local openLuup = luup.attr_get "openLuup"
   if HAN_MODEL ~= "200" then
@@ -558,31 +560,69 @@ local function retrieveData(model)
       setCommFailure(1)
     else -- got something from xml
       dataTable = {} -- blank table for the model 200 to fill in
-   
-      local tab = lom.parse(xmlstring)
+
+      -- some versions of the Eagle firmware put an '&' as seen below.  This is illegal
+      -- and will cause the xml parser to choke, so filter it out
+      -- <Description>Multiplier applied to demand & summation values</Description>
+      local tab = lom.parse(xmlstring:gsub(" & ", " "))
+      -- if there is something funky in the xml the parse may fail and it will return nil
+      if tab == nil then
+        log("xml parse of returned failed", 2)
+	return nil
+      end
 
       -- this is too big for general debug logging
       -- log("xmlstring is: " .. xmlstring, HAN_DEBUG)
       dataTable.meter_status = findValue("ConnectionStatus", tab)
       dataTable.timestamp = findValue("LastContact", tab)
 
+      -- some firmware versions have the value separate and some have it included
+      -- in the 'Value', so handle both
+      -- <Value>14.618000</Value>
+      -- <Value>14.618000 kWh</Value>
       local pattern, demand
       pattern = [[(.*) *kW.*]]
       local demandString = findValueFor("zigbee:InstantaneousDemand", tab)
       if demandString then
         log("demandString is: " .. demandString, HAN_DEBUG)
-        dataTable.demand = demandString:match(pattern)
+	if tonumber(demandString) then
+          dataTable.demand = demandString * 1
+	else
+          dataTable.demand = demandString:match(pattern)
+	  if dataTable.demand == nil then
+	    log("Demand didn't match pattern and isn't a number: " .. demandString, 2)
+	    return nil
+	  end
+	end
       end
 
       local deliveredString = findValueFor("zigbee:CurrentSummationDelivered", tab)
       if deliveredString then
         log("deliveredString is: " .. deliveredString, HAN_DEBUG)
-        dataTable.summation_delivered = deliveredString:match(pattern) * 1000
+	if tonumber(deliveredString) then
+          dataTable.summation_delivered = deliveredString * 1
+	else
+          local temp = deliveredString:match(pattern)
+	  if temp == nil then
+	    log("Delivered didn't match pattern and isn't a number: " .. deliveredString, 2)
+	    return nil
+	  end
+          dataTable.summation_delivered = temp * 1000
+	end
       end
 
       local receivedString = findValueFor("zigbee:CurrentSummationReceived", tab)
       if receivedString then
-        dataTable.summation_received = receivedString:match(pattern) * 1000
+	if tonumber(receivedString) then
+          dataTable.summation_received = receivedString * 1
+	else
+          local temp = receivedString:match(pattern)
+	  if temp == nil then
+	    log("Received didn't match pattern and isn't a number: " .. receivedString, 2)
+	    return nil
+	  end
+          dataTable.summation_received = temp * 1000
+	end
       end
 
       dataTable.price = findValueFor("zigbee:Price", tab)
@@ -600,6 +640,7 @@ local function storeData(dataTable)
     if dataTable.meter_status ~= "Connected" then
       if dataTable.meter_status then
         log("Connection problem: " .. dataTable.meter_status, 2)
+        setVar("LinkStatus", dataTable.meter_status)
       else
         log("Connection problem, nil status ", 2)
       end
@@ -608,6 +649,9 @@ local function storeData(dataTable)
     end
   else
     setCommFailure(1)
+    -- notify user of uknown link status if we can no longer communicate with
+    -- the Eagle
+    setVar("LinkStatus", "Unknown")
     return nil
   end
   setVar("LinkStatus", dataTable.meter_status)
@@ -668,6 +712,13 @@ local function storeData(dataTable)
     end
   else -- other models, no funky issues with demand
     local demand = tonumber(dataTable.demand) * 1000
+    -- yes, there is a funky issue on the 200 too!  If the demand is negative (say you have
+    -- solar), then bizzarely, it gives you a real number that appears to be off by 2^32 - two's
+    -- complement of a real number?  This may or may not exist on all firmware, but nobody's
+    -- likely to have a demand this high so it should be a safe check.
+    if demand > 2147483648 then
+      demand = demand - 4294967296
+    end
     setVar("Watts", demand, ENERGY_SERVICE)
   end
 
