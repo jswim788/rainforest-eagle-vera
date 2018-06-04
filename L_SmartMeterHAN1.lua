@@ -60,7 +60,7 @@
 --
 
 --
-local VERSION                   = "0.70js"
+local VERSION                   = "0.71prejs"
 local HA_SERVICE                = "urn:micasaverde-com:serviceId:HaDevice1"
 local ENERGY_SERVICE            = "urn:micasaverde-com:serviceId:EnergyMetering1"
 local HAN_SERVICE               = "urn:smartmeter-han:serviceId:SmartMeterHAN1"
@@ -332,6 +332,7 @@ function startup(han_device)
   HAN_CLOUDID = defVar("CloudId", "")
   defVar("WholeHouse", 1, ENERGY_SERVICE)
   defVar("ActualUsage", 1, ENERGY_SERVICE)
+  defVar("Debug") -- have a placeholder for users to fill in if needed
 
   local openLuup = luup.attr_get "openLuup"
   if HAN_MODEL ~= "200" then
@@ -711,6 +712,13 @@ local function storeData(dataTable)
     end
   else -- other models, no funky issues with demand
     local demand = tonumber(dataTable.demand) * 1000
+    -- yes, there is a funky issue on the 200 too!  If the demand is negative (say you have
+    -- solar), then bizzarely, it gives you a real number that appears to be off by 2^32 - two's
+    -- complement of a real number?  This may or may not exist on all firmware, but nobody's
+    -- likely to have a demand this high so it should be a safe check.
+    if demand > 2147483648 then
+      demand = demand - 4294967296
+    end
     setVar("Watts", demand, ENERGY_SERVICE)
   end
 
