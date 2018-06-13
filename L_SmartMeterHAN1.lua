@@ -57,10 +57,10 @@
 --        device list for debug
 -- 0.70   fix for resetKWH, use setCommFailure function to log time when failure
 --        first started, also only clear CommFailure when good data is received
--- 0.72   bug fixes for various Eagle 200 issues
+--
 
 --
-local VERSION                   = "0.72js"
+local VERSION                   = "0.73-prejs"
 local HA_SERVICE                = "urn:micasaverde-com:serviceId:HaDevice1"
 local ENERGY_SERVICE            = "urn:micasaverde-com:serviceId:EnergyMetering1"
 local HAN_SERVICE               = "urn:smartmeter-han:serviceId:SmartMeterHAN1"
@@ -473,7 +473,7 @@ function retrieveEagleData(requestName)
     method = "POST",
     headers =
     {
-      ["Content-Type"] = "text/html",
+      ["Content-Type"] = "text/xml",
       ["Content-Length"] = HAN_REQUEST:len()
     },
     source = ltn12.source.string(HAN_REQUEST),
