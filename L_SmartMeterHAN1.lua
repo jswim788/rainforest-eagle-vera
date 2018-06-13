@@ -57,6 +57,8 @@
 --        device list for debug
 -- 0.70   fix for resetKWH, use setCommFailure function to log time when failure
 --        first started, also only clear CommFailure when good data is received
+-- 0.72   bug fixes for various Eagle 200 issues
+-- 0.73   update POST to xml from html
 --
 
 --
