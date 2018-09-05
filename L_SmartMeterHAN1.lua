@@ -59,10 +59,11 @@
 --        first started, also only clear CommFailure when good data is received
 -- 0.72   bug fixes for various Eagle 200 issues
 -- 0.73   update POST to xml from html
+-- 0.74   handle null value in findValueFor
 --
 
 --
-local VERSION                   = "0.73js"
+local VERSION                   = "0.74-prejs"
 local HA_SERVICE                = "urn:micasaverde-com:serviceId:HaDevice1"
 local ENERGY_SERVICE            = "urn:micasaverde-com:serviceId:EnergyMetering1"
 local HAN_SERVICE               = "urn:smartmeter-han:serviceId:SmartMeterHAN1"
@@ -230,8 +231,14 @@ local function findValueFor(name, xmlTable)
         if type(v) == 'table' then
 	  if (v["tag"] == "Value") then
 	    -- print(v[1])
-	    log("Value is: " .. v[1], HAN_DEBUG)
-	    return v[1]
+	    if (v[1]) then
+	      log("Value is: " .. v[1], HAN_DEBUG)
+	      return v[1]
+            else
+              -- nil value?
+	      log("Value is: nil??", HAN_DEBUG)
+              return nil
+            end
 	  end
         end
       end
@@ -289,11 +296,20 @@ local function formatkWh(value)
 end
 
 local function setCommFailure(status)
-  if getVar("CommFailure", HA_SERVICE) == "0" and status == 1 then
+  local oldStatus = getVar("CommFailure", HA_SERVICE)
+  if oldStatus == "0" and status == 1 then
     -- the first time this is set, set the failure time
     -- otherwise, if this is a repetitive failure, user has
     -- no way to know when it failed
     setVar("CommFailureTime", os.time(), HA_SERVICE)
+    if (luup.version_major >= 7) then
+      luup.device_message(HAN_Device,2,"Eagle communication failure", 0,"SmartMeterHAN1(" .. VERSION .. "): communication failure")
+    end
+  elseif oldStatus == "1" and status == 0 then
+    if (luup.version_major >= 7) then
+      -- clear message with no timeout
+      luup.device_message(HAN_Device,4,"", 0,"SmartMeterHAN1(" .. VERSION .. "): communication restored")
+    end
   end
   setVar("CommFailure", status, HA_SERVICE)
 end
@@ -484,6 +500,8 @@ function retrieveEagleData(requestName)
 
   if res == nil then
     log("Error connecting to Rainforest Eagle server port, http request returned nil", 2)
+    log("Check IP and path: " .. path, 3)
+    log("Check request: " .. HAN_REQUEST, 3)
     setCommFailure(1)
     return nil
   end
