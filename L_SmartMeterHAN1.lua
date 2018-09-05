@@ -59,7 +59,9 @@
 --        first started, also only clear CommFailure when good data is received
 -- 0.72   bug fixes for various Eagle 200 issues
 -- 0.73   update POST to xml from html
--- 0.74   handle null value in findValueFor
+-- 0.74   handle null value in findValueFor - this seems to be possible if the meter
+--        is in the "Not joined" state - the name can be there, but the value may not
+--        be present
 --
 
 --
