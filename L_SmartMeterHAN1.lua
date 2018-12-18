@@ -58,9 +58,16 @@
 -- 0.70   fix for resetKWH, use setCommFailure function to log time when failure
 --        first started, also only clear CommFailure when good data is received
 -- 0.72   bug fixes for various Eagle 200 issues
+-- 0.73   update POST to xml from html
+-- 0.74   handle null value in findValueFor - this seems to be possible if the meter
+--        is in the "Not joined" state - the name can be there, but the value may not
+--        be present
+--        Also switch from attribute IP to EagleIP device variable for the IP address.
+--        The IP addtribute was disappearing for some users causing issues.
+--
 
 --
-local VERSION                   = "0.72js"
+local VERSION                   = "0.74"
 local HA_SERVICE                = "urn:micasaverde-com:serviceId:HaDevice1"
 local ENERGY_SERVICE            = "urn:micasaverde-com:serviceId:EnergyMetering1"
 local HAN_SERVICE               = "urn:smartmeter-han:serviceId:SmartMeterHAN1"
@@ -75,6 +82,7 @@ local HAN_MODEL
 local HAN_HWADDR
 local HAN_MeteringType
 local HAN_DEBUG                 = 50
+local ALTUI_SERVICE             = "urn:upnp-org:serviceId:altui1"
 
 
 local HAN_REQUEST_DETAILS_PRE = [[<Command><Name>device_query</Name><DeviceDetails><HardwareAddress>]]
@@ -228,8 +236,14 @@ local function findValueFor(name, xmlTable)
         if type(v) == 'table' then
 	  if (v["tag"] == "Value") then
 	    -- print(v[1])
-	    log("Value is: " .. v[1], HAN_DEBUG)
-	    return v[1]
+	    if (v[1]) then
+	      log("Value is: " .. v[1], HAN_DEBUG)
+	      return v[1]
+            else
+              -- nil value?
+	      log("Value is: nil??", HAN_DEBUG)
+              return nil
+            end
 	  end
         end
       end
@@ -286,26 +300,49 @@ local function formatkWh(value)
   end
 end
 
-local function setCommFailure(status)
-  if getVar("CommFailure", HA_SERVICE) == "0" and status == 1 then
-    -- the first time this is set, set the failure time
-    -- otherwise, if this is a repetitive failure, user has
-    -- no way to know when it failed
-    setVar("CommFailureTime", os.time(), HA_SERVICE)
-  end
-  setVar("CommFailure", status, HA_SERVICE)
-end
-
 -- Set a luup failure message
 local function setluupfailure(status,devID)
   if (luup.version_major < 7) then status = status ~= 0 end -- fix UI5 status type
   luup.set_failure(status,devID)
 end
 
+
+local function setCommFailure(status, message)
+  local oldStatus = getVar("CommFailure", HA_SERVICE)
+  if oldStatus == "0" and status == 1 then
+    -- the first time this is set, set the failure time
+    -- otherwise, if this is a repetitive failure, user has
+    -- no way to know when it failed
+    setVar("CommFailureTime", os.time(), HA_SERVICE)
+    setVar("DisplayLine1", "Communication Failure", ALTUI_SERVICE)
+    setluupfailure(1, HAN_Device)
+    if message then
+      setVar("DisplayLine2", message, ALTUI_SERVICE)
+    else
+      setVar("DisplayLine2", "Unknown cause", ALTUI_SERVICE)
+    end
+    if (luup.version_major >= 7) then
+      luup.device_message(HAN_Device,2,"Eagle communication failure", 0,"SmartMeterHAN1(" .. VERSION .. "): communication failure")
+    end
+  elseif oldStatus == "1" and status == 0 then
+    setVar("DisplayLine1", "", ALTUI_SERVICE)
+    setVar("DisplayLine2", "", ALTUI_SERVICE)
+    setluupfailure(0, HAN_Device)
+    if (luup.version_major >= 7) then
+      -- clear message with no timeout
+      luup.device_message(HAN_Device,4,"", 0,"SmartMeterHAN1(" .. VERSION .. "): communication restored")
+    end
+  end
+  setVar("CommFailure", status, HA_SERVICE)
+end
+
 function startup(han_device)
   log("Starting", 2)
   HAN_Device        = han_device
-  HAN_IP            = luup.devices[han_device].ip
+  -- Vera apparently has trouble with using the IP device attribute.  Instead, use
+  -- a local device variable for the IP
+  -- HAN_IP            = luup.devices[han_device].ip
+  HAN_IP = defVar("EagleIP", "192.168.1.100")
 
   -- Set up default values
   HAN_MODEL = defVar("EagleModel", "100")
@@ -359,8 +396,8 @@ function startup(han_device)
     local xmlstring = retrieveEagleData("device_list")
     -- can use 'xmlstringTest' as defined above for testing
     if xmlstring == nil then
-      log("Eagle Model 200: no hardware address, retrieveEagleData returned nil for 'device_list'", 1)
-      return false, "Cannot find hardware address of Eagle", "SmartMeterHAN1"
+      log("Eagle Model 200: no hardware address, retrieveEagleData returned nil for 'device_list', check EagleIP address", 1)
+      return false, "Cannot find hardware address of Eagle, check EagleIP address", "SmartMeterHAN1"
     end
 
     -- lxp is on Vera by default, but not on openLuup
@@ -473,7 +510,7 @@ function retrieveEagleData(requestName)
     method = "POST",
     headers =
     {
-      ["Content-Type"] = "text/html",
+      ["Content-Type"] = "text/xml",
       ["Content-Length"] = HAN_REQUEST:len()
     },
     source = ltn12.source.string(HAN_REQUEST),
@@ -482,13 +519,15 @@ function retrieveEagleData(requestName)
 
   if res == nil then
     log("Error connecting to Rainforest Eagle server port, http request returned nil", 2)
-    setCommFailure(1)
+    log("Check IP and path: " .. path, 3)
+    log("Check request: " .. HAN_REQUEST, 3)
+    setCommFailure(1, "Can't connect")
     return nil
   end
 
   if code ~= 200 then
     log("Error connecting to Rainforest Eagle server port: " .. code, 2)
-    setCommFailure(1)
+    setCommFailure(1, "Can't connect")
     return nil
   end
 
@@ -497,7 +536,7 @@ function retrieveEagleData(requestName)
     obj, pos, err = json.decode(table.concat(response_body))
     if err then
       log("json decode error when decoding from Ealge 100: " .. err, 2)
-      setCommFailure(1)
+      setCommFailure(1, "JSON decode error")
       return nil
     end
     -- must have good data!  -- but don't set CommFailure to good yet - could have
@@ -506,7 +545,7 @@ function retrieveEagleData(requestName)
   elseif HAN_MODEL == "200" then
     if table.concat(response_body) == nil then
       log("got nil response from Eagle 200 from POST request", 2)
-      setCommFailure(1)
+      setCommFailure(1, "nil response")
       return nil
     end
     -- must have good data!  -- but don't set CommFailure to good yet - could have
@@ -539,7 +578,7 @@ local function retrieveData(model)
 
     if type(dataTable) ~= "table" then
       log("Unable to retrieve data from Eagle 100", 2)
-      setCommFailure(1)
+      setCommFailure(1, "No valid data")
     else
       local timestamp
       timestamp = fixTimeStamp(tonumber_u(dataTable.demand_timestamp))
@@ -557,7 +596,7 @@ local function retrieveData(model)
     local xmlstring = retrieveEagleData("200_allVariables")
     if xmlstring == nil then
       log("Unable to retrieve all variables from Eagle 200", 2)
-      setCommFailure(1)
+      setCommFailure(1, "No valid data")
     else -- got something from xml
       dataTable = {} -- blank table for the model 200 to fill in
 
@@ -641,14 +680,15 @@ local function storeData(dataTable)
       if dataTable.meter_status then
         log("Connection problem: " .. dataTable.meter_status, 2)
         setVar("LinkStatus", dataTable.meter_status)
+        setCommFailure(1,dataTable.meter_status)
       else
         log("Connection problem, nil status ", 2)
+        setCommFailure(1,"unknown")
       end
-      setCommFailure(1)
       return nil
     end
   else
-    setCommFailure(1)
+    setCommFailure(1, "No valid data")
     -- notify user of uknown link status if we can no longer communicate with
     -- the Eagle
     setVar("LinkStatus", "Unknown")
@@ -685,10 +725,13 @@ local function storeData(dataTable)
 
     if (HAN_MeteringType == "0") then
       setVar("KWH", formatkWh(delivered - baseDelivered), ENERGY_SERVICE)
+      setVar("DisplayLine2", formatkWh(delivered - baseDelivered) .. " kWh", ALTUI_SERVICE)
     elseif (HAN_MeteringType == "1") then
       setVar("KWH", formatkWh(received - baseReceived), ENERGY_SERVICE)
+      setVar("DisplayLine2", formatkWh(received - baseReceived) .. " kWh", ALTUI_SERVICE)
     else
       setVar("KWH", formatkWh(net - (baseDelivered - baseReceived)), ENERGY_SERVICE)
+      setVar("DisplayLine2", formatkWh(net - (baseDelivered - baseReceived)) .. " kWh", ALTUI_SERVICE)
       -- for 2 way meters, good to know the net incoming due to the non bypassable charges which are
       -- based on delivered power only and not offset by generation
       setVar("KWHDeliveredPerPeriod", delivered - baseDelivered)
@@ -703,6 +746,7 @@ local function storeData(dataTable)
     if dataTable.demand ~= "nan" and tonumber(dataTable.demand) then
       local demand = tonumber(dataTable.demand) * 1000
       setVar("Watts", demand, ENERGY_SERVICE)
+      setVar("DisplayLine1", demand .. " W", ALTUI_SERVICE)
     else
       if dataTable.demand then
         log("Eagle 100: Issue with demand: " .. dataTable.demand, 2)
@@ -720,6 +764,7 @@ local function storeData(dataTable)
       demand = demand - 4294967296
     end
     setVar("Watts", demand, ENERGY_SERVICE)
+    setVar("DisplayLine1", demand .. " W", ALTUI_SERVICE)
   end
 
   setVar("Price", dataTable.price, ENERGY_SERVICE)
@@ -825,6 +870,7 @@ function resetKWH()
   setVar("KWHBaseDelivered", currentDelivered)
   setVar("KWHBaseReceived",  currentReceived)
   setVar("KWH", 0, ENERGY_SERVICE)
+  setVar("DisplayLine2", "0 kWh", ALTUI_SERVICE)
 
   -- set up rates for the next period - the season may have changed
   local currentSeason = getVar("Season")
