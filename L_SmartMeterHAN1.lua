@@ -300,6 +300,13 @@ local function formatkWh(value)
   end
 end
 
+-- Set a luup failure message
+local function setluupfailure(status,devID)
+  if (luup.version_major < 7) then status = status ~= 0 end -- fix UI5 status type
+  luup.set_failure(status,devID)
+end
+
+
 local function setCommFailure(status, message)
   local oldStatus = getVar("CommFailure", HA_SERVICE)
   if oldStatus == "0" and status == 1 then
@@ -327,12 +334,6 @@ local function setCommFailure(status, message)
     end
   end
   setVar("CommFailure", status, HA_SERVICE)
-end
-
--- Set a luup failure message
-local function setluupfailure(status,devID)
-  if (luup.version_major < 7) then status = status ~= 0 end -- fix UI5 status type
-  luup.set_failure(status,devID)
 end
 
 function startup(han_device)
