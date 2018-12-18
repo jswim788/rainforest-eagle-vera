@@ -67,7 +67,7 @@
 --
 
 --
-local VERSION                   = "0.74-prejs"
+local VERSION                   = "0.74"
 local HA_SERVICE                = "urn:micasaverde-com:serviceId:HaDevice1"
 local ENERGY_SERVICE            = "urn:micasaverde-com:serviceId:EnergyMetering1"
 local HAN_SERVICE               = "urn:smartmeter-han:serviceId:SmartMeterHAN1"
