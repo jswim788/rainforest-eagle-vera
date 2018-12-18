@@ -62,6 +62,8 @@
 -- 0.74   handle null value in findValueFor - this seems to be possible if the meter
 --        is in the "Not joined" state - the name can be there, but the value may not
 --        be present
+--        Also switch from attribute IP to EagleIP device variable for the IP address.
+--        The IP addtribute was disappearing for some users causing issues.
 --
 
 --
@@ -306,6 +308,7 @@ local function setCommFailure(status, message)
     -- no way to know when it failed
     setVar("CommFailureTime", os.time(), HA_SERVICE)
     setVar("DisplayLine1", "Communication Failure", ALTUI_SERVICE)
+    setluupfailure(1, HAN_Device)
     if message then
       setVar("DisplayLine2", message, ALTUI_SERVICE)
     else
@@ -317,6 +320,7 @@ local function setCommFailure(status, message)
   elseif oldStatus == "1" and status == 0 then
     setVar("DisplayLine1", "", ALTUI_SERVICE)
     setVar("DisplayLine2", "", ALTUI_SERVICE)
+    setluupfailure(0, HAN_Device)
     if (luup.version_major >= 7) then
       -- clear message with no timeout
       luup.device_message(HAN_Device,4,"", 0,"SmartMeterHAN1(" .. VERSION .. "): communication restored")
@@ -334,7 +338,10 @@ end
 function startup(han_device)
   log("Starting", 2)
   HAN_Device        = han_device
-  HAN_IP            = luup.devices[han_device].ip
+  -- Vera apparently has trouble with using the IP device attribute.  Instead, use
+  -- a local device variable for the IP
+  -- HAN_IP            = luup.devices[han_device].ip
+  HAN_IP = defVar("EagleIP", "192.168.1.100")
 
   -- Set up default values
   HAN_MODEL = defVar("EagleModel", "100")
@@ -388,8 +395,8 @@ function startup(han_device)
     local xmlstring = retrieveEagleData("device_list")
     -- can use 'xmlstringTest' as defined above for testing
     if xmlstring == nil then
-      log("Eagle Model 200: no hardware address, retrieveEagleData returned nil for 'device_list'", 1)
-      return false, "Cannot find hardware address of Eagle", "SmartMeterHAN1"
+      log("Eagle Model 200: no hardware address, retrieveEagleData returned nil for 'device_list', check EagleIP address", 1)
+      return false, "Cannot find hardware address of Eagle, check EagleIP address", "SmartMeterHAN1"
     end
 
     -- lxp is on Vera by default, but not on openLuup
