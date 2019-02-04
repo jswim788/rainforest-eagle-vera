@@ -436,6 +436,7 @@ function startup(han_device)
         log("Eagle 200: xmlstring is: " .. xmlstring, 1)
         return false, "Cannot find hardware address", "SmartMeterHAN1"
       else
+        setVar("HAN_HWADDR", HAN_HWADDR)
         log("Eagle 200: Found hardware address: " .. HAN_HWADDR, 3)
       end
       if connectionStatus then
