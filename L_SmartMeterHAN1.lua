@@ -64,10 +64,15 @@
 --        be present
 --        Also switch from attribute IP to EagleIP device variable for the IP address.
 --        The IP addtribute was disappearing for some users causing issues.
+-- 0.75   Don't use luup.set_failure on UI7 - not sure why it doesn't work well, but
+--        I have no way to debug.  Move HAN_HWADDR to device variable, don't try to
+--        pick it up every time it starts as occasionally the Eagle gives a blank
+--        response and then it is stuck with a bad value.  Now if it gets set, it
+--        will never try again and thus won't be in a bad state later.
 --
 
 --
-local VERSION                   = "0.74"
+local VERSION                   = "0.75"
 local HA_SERVICE                = "urn:micasaverde-com:serviceId:HaDevice1"
 local ENERGY_SERVICE            = "urn:micasaverde-com:serviceId:EnergyMetering1"
 local HAN_SERVICE               = "urn:smartmeter-han:serviceId:SmartMeterHAN1"
@@ -83,6 +88,7 @@ local HAN_HWADDR
 local HAN_MeteringType
 local HAN_DEBUG                 = 50
 local ALTUI_SERVICE             = "urn:upnp-org:serviceId:altui1"
+local openLuup
 
 
 local HAN_REQUEST_DETAILS_PRE = [[<Command><Name>device_query</Name><DeviceDetails><HardwareAddress>]]
@@ -303,7 +309,11 @@ end
 -- Set a luup failure message
 local function setluupfailure(status,devID)
   if (luup.version_major < 7) then status = status ~= 0 end -- fix UI5 status type
-  luup.set_failure(status,devID)
+  -- only set this on UI5 and openLuup.  UI7 does something odd and I have no way
+  -- to test or debug it
+  if (openLuup or luup.version_major < 7) then
+    luup.set_failure(status,devID)
+  end
 end
 
 
@@ -371,7 +381,7 @@ function startup(han_device)
   defVar("ActualUsage", 1, ENERGY_SERVICE)
   defVar("Debug") -- have a placeholder for users to fill in if needed
 
-  local openLuup = luup.attr_get "openLuup"
+  openLuup = luup.attr_get "openLuup"
   if HAN_MODEL ~= "200" then
     log("Eagle Model 100", 3)
     if ((HAN_MACID or "") == "") then
@@ -392,13 +402,6 @@ function startup(han_device)
 
   else
     log("Eagle Model 200", 3)
-    -- get the hardware address of the Eagle 200 
-    local xmlstring = retrieveEagleData("device_list")
-    -- can use 'xmlstringTest' as defined above for testing
-    if xmlstring == nil then
-      log("Eagle Model 200: no hardware address, retrieveEagleData returned nil for 'device_list', check EagleIP address", 1)
-      return false, "Cannot find hardware address of Eagle, check EagleIP address", "SmartMeterHAN1"
-    end
 
     -- lxp is on Vera by default, but not on openLuup
     -- put some protection around the openLuup 'require' call so it doesn't (possilby) crash
@@ -412,20 +415,32 @@ function startup(han_device)
       return false, "lxp.lom not found, please load lxp manually", "SmartMeterHAN1"
     end
 
-    local tab = lom.parse(xmlstring)
-    HAN_HWADDR = findValue("HardwareAddress", tab)
-    local connectionStatus = findValue("ConnectionStatus", tab)
-    if HAN_HWADDR == nil then
-      -- this is weird, there is a string, but didn't find the hardware address?
-      -- on my unit, needed a power cycle of the Eagle to get out of this bad state...
-      log("Eagle 200: no hardware address found in returned XML", 1)
-      log("Eagle 200: xmlstring is: " .. xmlstring, 1)
-      return false, "Cannot find hardware address", "SmartMeterHAN1"
-    else
-      log("Eagle 200: Found hardware address: " .. HAN_HWADDR, 3)
-    end
-    if connectionStatus then
-      log("Connection status: " .. connectionStatus, 3)
+    -- get the hardware address of the Eagle 200 if not already known
+    HAN_HWADDR = defVar("HAN_HWADDR")
+    if HAN_HWADDR == "" then
+      log("Eagle 200: Getting HAN_HWADDR from device", 3)
+      local xmlstring = retrieveEagleData("device_list")
+      -- can use 'xmlstringTest' as defined above for testing
+      if xmlstring == nil then
+        log("Eagle Model 200: no hardware address, retrieveEagleData returned nil for 'device_list', check EagleIP address", 1)
+        return false, "Cannot find hardware address of Eagle, check EagleIP address", "SmartMeterHAN1"
+      end
+
+      local tab = lom.parse(xmlstring)
+      HAN_HWADDR = findValue("HardwareAddress", tab)
+      local connectionStatus = findValue("ConnectionStatus", tab)
+      if HAN_HWADDR == nil then
+        -- this is weird, there is a string, but didn't find the hardware address?
+        -- on my unit, needed a power cycle of the Eagle to get out of this bad state...
+        log("Eagle 200: no hardware address found in returned XML", 1)
+        log("Eagle 200: xmlstring is: " .. xmlstring, 1)
+        return false, "Cannot find hardware address", "SmartMeterHAN1"
+      else
+        log("Eagle 200: Found hardware address: " .. HAN_HWADDR, 3)
+      end
+      if connectionStatus then
+        log("Connection status: " .. connectionStatus, 3)
+      end
     end
   end
   if (HAN_IP:match("%d+%.%d+%.%d+%.%d+") == nil) then
