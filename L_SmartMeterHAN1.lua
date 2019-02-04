@@ -1,6 +1,6 @@
 -- Plugin for the Rainforest Eagle 100/200
 --
--- Copyright (c) 2017-2018 John Schmitz
+-- Copyright (c) 2017-2019 John Schmitz
 
 -- Permission is hereby granted, free of charge, to any person obtaining a copy
 -- of this software and associated documentation files (the "Software"), to deal
