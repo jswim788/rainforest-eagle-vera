@@ -69,10 +69,11 @@
 --        pick it up every time it starts as occasionally the Eagle gives a blank
 --        response and then it is stuck with a bad value.  Now if it gets set, it
 --        will never try again and thus won't be in a bad state later.
---
+-- 0.76   CloudID needs to be lower case for the hex digits, but it is printed in
+--        upper case on the unit!  So convert it to lower case before using...
 
 --
-local VERSION                   = "0.75"
+local VERSION                   = "0.76"
 local HA_SERVICE                = "urn:micasaverde-com:serviceId:HaDevice1"
 local ENERGY_SERVICE            = "urn:micasaverde-com:serviceId:EnergyMetering1"
 local HAN_SERVICE               = "urn:smartmeter-han:serviceId:SmartMeterHAN1"
@@ -376,7 +377,7 @@ function startup(han_device)
   defVar("Rates", "0,0,0,0")
   HAN_MACID = defVar("DeviceMACID", "")
   HAN_IN = defVar("DeviceIN", "")
-  HAN_CLOUDID = defVar("CloudId", "")
+  HAN_CLOUDID = string.lower(defVar("CloudId", ""))
   defVar("WholeHouse", 1, ENERGY_SERVICE)
   defVar("ActualUsage", 1, ENERGY_SERVICE)
   defVar("Debug") -- have a placeholder for users to fill in if needed
